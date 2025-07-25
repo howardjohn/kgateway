@@ -12,7 +12,6 @@ import (
 	envoy_service_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/service/endpoint/v3"
 	envoy_service_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/service/listener/v3"
 	envoy_service_route_v3 "github.com/envoyproxy/go-control-plane/envoy/service/route/v3"
-	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	envoylog "github.com/envoyproxy/go-control-plane/pkg/log"
 	xdsserver "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -21,7 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/xds"
+	ecache "github.com/kgateway-dev/kgateway/v2/internal/kgateway/cache"
 )
 
 // slogAdapterForEnvoy adapts *slog.Logger to envoylog.Logger interface
@@ -60,7 +59,7 @@ func NewControlPlane(
 	ctx context.Context,
 	bindAddr net.Addr,
 	callbacks xdsserver.Callbacks,
-) (envoycache.SnapshotCache, error) {
+) (*ecache.EnvoySnapshot, error) {
 	lis, err := net.Listen(bindAddr.Network(), bindAddr.String())
 	if err != nil {
 		return nil, err
@@ -76,7 +75,7 @@ func NewControlPlane(
 func NewControlPlaneWithListener(ctx context.Context,
 	lis net.Listener,
 	callbacks xdsserver.Callbacks,
-) (envoycache.SnapshotCache, *grpc.Server) {
+) (*ecache.EnvoySnapshot, *grpc.Server) {
 	baseLogger := slog.Default().With("component", "envoy-controlplane")
 	envoyLoggerAdapter := &slogAdapterForEnvoy{logger: baseLogger}
 
@@ -93,10 +92,9 @@ func NewControlPlaneWithListener(ctx context.Context,
 			)),
 	}
 	grpcServer := grpc.NewServer(serverOpts...)
+	cache := ecache.New(envoyLoggerAdapter)
 
-	snapshotCache := envoycache.NewSnapshotCache(true, xds.NewNodeRoleHasher(), envoyLoggerAdapter)
-
-	xdsServer := xdsserver.NewServer(ctx, snapshotCache, callbacks)
+	xdsServer := xdsserver.NewServer(ctx, cache, callbacks)
 	reflection.Register(grpcServer)
 
 	envoy_service_endpoint_v3.RegisterEndpointDiscoveryServiceServer(grpcServer, xdsServer)
@@ -107,5 +105,5 @@ func NewControlPlaneWithListener(ctx context.Context,
 
 	go grpcServer.Serve(lis)
 
-	return snapshotCache, grpcServer
+	return cache, grpcServer
 }

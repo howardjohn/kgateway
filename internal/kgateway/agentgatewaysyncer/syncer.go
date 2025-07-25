@@ -41,6 +41,8 @@ import (
 	gwv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	gwxv1a1 "sigs.k8s.io/gateway-api/apisx/v1alpha1"
 
+	ecache "github.com/kgateway-dev/kgateway/v2/internal/kgateway/cache"
+
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/extensions2/common"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/krtcollections"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/reports"
@@ -90,7 +92,7 @@ type AgentGwSyncer struct {
 
 	// XDS and caching
 	xDS                 krt.Collection[agentGwXdsResources]
-	xdsCache            envoycache.SnapshotCache
+	xdsCache            *ecache.EnvoySnapshot
 	xdsSnapshotsMetrics krtcollections.CollectionMetricsRecorder
 
 	// Status reporting
@@ -110,12 +112,6 @@ type agentGwXdsResources struct {
 
 	// Status reports for this gateway
 	reports reports.ReportMap
-
-	// Resources config for gateway (Bind, Listener, Route)
-	ResourceConfig envoycache.Resources
-
-	// Address config (Services, Workloads)
-	AddressConfig envoycache.Resources
 }
 
 // ResourceName needs to match agentgateway role configured in client.rs (https://github.com/agentgateway/agentgateway/blob/main/crates/agentgateway/src/xds/client.rs)
@@ -125,9 +121,7 @@ func (r agentGwXdsResources) ResourceName() string {
 
 func (r agentGwXdsResources) Equals(in agentGwXdsResources) bool {
 	return r.NamespacedName == in.NamespacedName &&
-		report{r.reports}.Equals(report{in.reports}) &&
-		r.ResourceConfig.Version == in.ResourceConfig.Version &&
-		r.AddressConfig.Version == in.AddressConfig.Version
+		report{r.reports}.Equals(report{in.reports})
 }
 
 func NewAgentGwSyncer(
@@ -137,7 +131,7 @@ func NewAgentGwSyncer(
 	mgr manager.Manager,
 	commonCols *common.CommonCollections,
 	plugins pluginsdk.Plugin,
-	xdsCache envoycache.SnapshotCache,
+	xdsCache *ecache.EnvoySnapshot,
 	domainSuffix string,
 	systemNamespace string,
 	clusterID string,
@@ -225,6 +219,9 @@ type Inputs struct {
 
 func (s *AgentGwSyncer) Init(krtopts krtutil.KrtOptions) {
 	logger.Debug("init agentgateway Syncer", "controllername", s.controllerName)
+
+	s.xdsCache.RegisterPerType(TargetTypeAddressUrl)
+	s.xdsCache.RegisterPerNode(TargetTypeResourceUrl)
 
 	s.setupInferenceExtensionClient()
 	inputs := s.buildInputCollections(krtopts)
@@ -458,6 +455,17 @@ func (s *AgentGwSyncer) getProtocolAndTLSConfig(obj Gateway) (api.Protocol, *api
 	}
 }
 
+type XDSUpdate struct {
+	toUpdate map[string]envoytypes.Resource
+	toDelete []string
+}
+
+func newXDSUpdate() *XDSUpdate {
+	return &XDSUpdate{
+		toUpdate: make(map[string]envoytypes.Resource),
+	}
+}
+
 func (s *AgentGwSyncer) buildAddressCollections(inputs Inputs, krtopts krtutil.KrtOptions) krt.Collection[envoyResourceWithCustomName] {
 	// Build endpoint slices and namespaces
 	epSliceClient := kclient.NewFiltered[*discoveryv1.EndpointSlice](
@@ -494,7 +502,7 @@ func (s *AgentGwSyncer) buildAddressCollections(inputs Inputs, krtopts krtutil.K
 	// Build address collections
 	svcAddresses := krt.NewCollection(workloadServices, func(ctx krt.HandlerContext, obj ServiceInfo) *ADPCacheAddress {
 		addrMessage := obj.AsAddress.Address
-		resourceVersion := utils.HashProto(addrMessage)
+		resourceVersion := utils.HashBytes(obj.MarshaledAddress.Value)
 		result := &ADPCacheAddress{
 			NamespacedName:      types.NamespacedName{Name: obj.Service.GetName(), Namespace: obj.Service.GetNamespace()},
 			Address:             addrMessage,
@@ -507,7 +515,7 @@ func (s *AgentGwSyncer) buildAddressCollections(inputs Inputs, krtopts krtutil.K
 
 	workloadAddresses := krt.NewCollection(workloads, func(ctx krt.HandlerContext, obj WorkloadInfo) *ADPCacheAddress {
 		addrMessage := obj.AsAddress.Address
-		resourceVersion := utils.HashProto(addrMessage)
+		resourceVersion := utils.HashBytes(obj.MarshaledAddress.Value)
 		result := &ADPCacheAddress{
 			NamespacedName:      types.NamespacedName{Name: obj.Workload.GetName(), Namespace: obj.Workload.GetNamespace()},
 			Address:             addrMessage,
@@ -529,47 +537,54 @@ func (s *AgentGwSyncer) buildAddressCollections(inputs Inputs, krtopts krtutil.K
 }
 
 func (s *AgentGwSyncer) buildXDSCollection(adpResources krt.Collection[ADPResource], xdsAddresses krt.Collection[envoyResourceWithCustomName], krtopts krtutil.KrtOptions, rm reports.ReportMap) {
-	// Create an index on adpResources by Gateway to avoid fetching all resources
-	adpResourcesByGateway := krt.NewIndex(adpResources, func(resource ADPResource) []types.NamespacedName {
-		return []types.NamespacedName{resource.Gateway}
-	})
+	xdsAddresses.RegisterBatch(func(o []krt.Event[envoyResourceWithCustomName], initialSync bool) {
+		c := s.xdsCache.For(TargetTypeAddressUrl, "") // Not node dependant
+		toUpdate := map[string]envoytypes.Resource{}
+		toDelete := []string{}
+		for _, ev := range o {
+			l := ev.Latest()
+			if ev.Event == controllers.EventDelete {
+				toDelete = append(toDelete, l.Name)
+			} else {
+				toUpdate[l.ResourceName()] = l
+			}
+		}
+		_ = c.UpdateResources(toUpdate, toDelete)
+	}, false)
+	adpResources.RegisterBatch(func(o []krt.Event[ADPResource], initialSync bool) {
+		perNode := map[string]*XDSUpdate{}
+		for _, ev := range o {
+			l := ev.Latest()
+			node := fmt.Sprintf(resourceNameFormat, l.Gateway.Namespace, l.Gateway.Name)
+			xds, f := perNode[node]
+			if !f {
+				n := newXDSUpdate()
+				perNode[node] = n
+				xds = n
+			}
+			if ev.Event == controllers.EventDelete {
+				xds.toDelete = append(xds.toDelete, l.ResourceName())
+			} else {
+				// TODO: precompute?
+				xds.toUpdate[l.ResourceName()] = &envoyResourceWithCustomName{
+					Message: l.Resource,
+					Name:    l.ResourceName(),
+					version: utils.HashProto(l.Resource),
+				}
+			}
+		}
+		for node, updates := range perNode {
+			c := s.xdsCache.For(TargetTypeResourceUrl, node)
+			_ = c.UpdateResources(updates.toUpdate, updates.toDelete)
+		}
+	}, false)
 
 	s.xDS = krt.NewCollection(adpResources, func(kctx krt.HandlerContext, obj ADPResource) *agentGwXdsResources {
 		gwNamespacedName := obj.Gateway
 
-		cacheAddresses := krt.Fetch(kctx, xdsAddresses)
-		envoytypesAddresses := make([]envoytypes.Resource, 0, len(cacheAddresses))
-		for _, addr := range cacheAddresses {
-			envoytypesAddresses = append(envoytypesAddresses, addr)
-		}
-
-		var cacheResources []envoytypes.Resource
-		// Use index to fetch only resources for this gateway instead of all resources
-		resourceList := krt.Fetch(kctx, adpResources, krt.FilterIndex(adpResourcesByGateway, gwNamespacedName))
-		for _, resource := range resourceList {
-			cacheResources = append(cacheResources, &envoyResourceWithCustomName{
-				Message: resource.Resource,
-				Name:    resource.ResourceName(),
-				version: utils.HashProto(resource.Resource),
-			})
-		}
-
-		// Create the resource wrappers
-		var resourceVersion uint64
-		for _, res := range cacheResources {
-			resourceVersion ^= res.(*envoyResourceWithCustomName).version
-		}
-		// Calculate address version
-		var addrVersion uint64
-		for _, res := range cacheAddresses {
-			addrVersion ^= res.version
-		}
-
 		result := &agentGwXdsResources{
 			NamespacedName: gwNamespacedName,
 			reports:        rm,
-			ResourceConfig: envoycache.NewResources(fmt.Sprintf("%d", resourceVersion), cacheResources),
-			AddressConfig:  envoycache.NewResources(fmt.Sprintf("%d", addrVersion), envoytypesAddresses),
 		}
 		logger.Debug("created XDS resources for gateway with ID", "gwname", fmt.Sprintf("%s,%s", gwNamespacedName.Name, gwNamespacedName.Namespace), "resourceid", result.ResourceName())
 		return result
@@ -642,27 +657,6 @@ func (s *AgentGwSyncer) Start(ctx context.Context) error {
 			s.syncRouteStatus(ctx, routeStatusLogger, latestReport)
 		}
 	}()
-
-	s.xDS.RegisterBatch(func(events []krt.Event[agentGwXdsResources], _ bool) {
-		for _, e := range events {
-			snap := e.Latest()
-			if e.Event == controllers.EventDelete {
-				s.xdsCache.ClearSnapshot(snap.ResourceName())
-				continue
-			}
-			snapshot := &agentGwSnapshot{
-				Resources: snap.ResourceConfig,
-				Addresses: snap.AddressConfig,
-			}
-			logger.Debug("setting xds snapshot", "resource_name", snap.ResourceName())
-			logger.Debug("snapshot config", "resource_snapshot", snapshot.Resources, "workload_snapshot", snapshot.Addresses)
-			err := s.xdsCache.SetSnapshot(ctx, snap.ResourceName(), snapshot)
-			if err != nil {
-				logger.Error("failed to set xds snapshot", "resource_name", snap.ResourceName(), "error", err.Error())
-				continue
-			}
-		}
-	}, true)
 
 	s.ready.Store(true)
 	<-ctx.Done()

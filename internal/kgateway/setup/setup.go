@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net"
 
-	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xdsserver "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/go-logr/logr"
 	istiokube "istio.io/istio/pkg/kube"
@@ -15,6 +14,8 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	ecache "github.com/kgateway-dev/kgateway/v2/internal/kgateway/cache"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/admin"
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/controller"
@@ -183,7 +184,7 @@ func startControlPlane(
 	ctx context.Context,
 	port uint32,
 	callbacks xdsserver.Callbacks,
-) (envoycache.SnapshotCache, error) {
+) (*ecache.EnvoySnapshot, error) {
 	return NewControlPlane(ctx, &net.TCPAddr{IP: net.IPv4zero, Port: int(port)}, callbacks)
 }
 

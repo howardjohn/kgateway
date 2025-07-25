@@ -19,6 +19,12 @@ func HashProto(resource proto.Message) uint64 {
 	return hasher.Sum64()
 }
 
+func HashBytes(b []byte) uint64 {
+	hasher := fnv.New64a()
+	hasher.Write(b)
+	return hasher.Sum64()
+}
+
 func HashString(s string) uint64 {
 	hasher := fnv.New64a()
 	hasher.Write([]byte(s))

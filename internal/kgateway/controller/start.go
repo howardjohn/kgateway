@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	envoycache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	istiokube "istio.io/istio/pkg/kube"
 	"istio.io/istio/pkg/kube/krt"
 	istiolog "istio.io/istio/pkg/log"
@@ -20,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	infextv1a2 "sigs.k8s.io/gateway-api-inference-extension/api/v1alpha2"
+
+	ecache "github.com/kgateway-dev/kgateway/v2/internal/kgateway/cache"
 
 	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/agentgatewaysyncer"
 	agwbuiltin "github.com/kgateway-dev/kgateway/v2/internal/kgateway/agentgatewaysyncer/plugins/builtin"
@@ -49,7 +50,7 @@ const (
 )
 
 type SetupOpts struct {
-	Cache envoycache.SnapshotCache
+	Cache *ecache.EnvoySnapshot
 
 	KrtDebugger *krt.DebugHandler
 
@@ -208,7 +209,7 @@ func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuil
 		cfg.UniqueClients,
 		mergedPlugins,
 		commoncol,
-		cfg.SetupOpts.Cache,
+		cfg.SetupOpts.Cache.Snapshot,
 		cfg.AgentGatewayClassName,
 	)
 	proxySyncer.Init(ctx, cfg.KrtOptions)
