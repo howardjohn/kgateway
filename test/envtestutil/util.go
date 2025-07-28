@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/solo-io/go-utils/contextutils"
 	"go.uber.org/zap"
@@ -147,11 +146,6 @@ func RunController(t *testing.T, logger *zap.Logger, globalSettings *settings.Se
 			log.Fatalf("error starting kgateway %v", err)
 		}
 	}()
-
-	// give kgateway time to initialize so we don't get
-	// "kgateway not initialized" error
-	// this means that it attaches the pod collection to the unique client set collection.
-	time.Sleep(time.Second)
 
 	xdsPort := l.Addr().(*net.TCPAddr).Port
 	t.Log("running tests, xds port:", xdsPort)
