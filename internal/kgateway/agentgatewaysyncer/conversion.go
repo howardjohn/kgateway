@@ -434,10 +434,11 @@ func buildADPDestination(
 				Reason:  gwv1.RouteReasonBackendNotFound,
 				Message: fmt.Sprintf("backend(%s) not found", hostname)}
 		}
-		rb.Kind = &api.BackendReference{
+		rb.Backend = &api.BackendReference{
 			Kind: &api.BackendReference_Service{
 				Service: namespace + "/" + hostname,
 			},
+			Port: uint32(svc.Spec.TargetPortNumber),
 		}
 	case wellknown.ServiceGVK.GroupKind():
 		port = to.Port
@@ -468,8 +469,7 @@ func buildADPDestination(
 				Reason:  gwv1.RouteReasonUnsupportedValue,
 				Message: "port is required in backendRef"}
 		}
-		rb.Port = int32(*port)
-		rb.Kind = &api.BackendReference{
+		rb.Backend = &api.BackendReference{
 			Kind: &api.BackendReference_Service{
 				Service: namespace + "/" + hostname,
 			},
@@ -504,7 +504,7 @@ func buildADPDestination(
 		}
 
 		logger.Debug("successfully resolved kgateway Backend", "backend", kgwBackend.Name)
-		rb.Kind = &api.BackendReference{
+		rb.Backend = &api.BackendReference{
 			Kind: &api.BackendReference_Backend{
 				Backend: kgwBackend.Namespace + "/" + kgwBackend.Name,
 			},

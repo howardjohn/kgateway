@@ -201,6 +201,7 @@ func createADPMirrorFilter(
 			Weight:                 &weightOne,
 		},
 	}, ns, k, ctx.Backends)
+	_ = dst
 	if err != nil {
 		return nil, err
 	}
@@ -221,8 +222,8 @@ func createADPMirrorFilter(
 	}
 	rm := &api.RequestMirror{
 		Percentage: percent,
-		Port:       dst.GetPort(),
-		Kind:       dst.GetKind(),
+		//Port:       dst.GetPort(),
+		//Kind:       dst.GetKind(),
 	}
 	return &api.RouteFilter{Kind: &api.RouteFilter_RequestMirror{RequestMirror: rm}}, nil
 }

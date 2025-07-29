@@ -37,10 +37,10 @@ func processMCPBackendForAgentGateway(ctx krt.HandlerContext, nsCol krt.Collecti
 
 				mcpTarget := &api.MCPTarget{
 					Name: targetSelector.StaticTarget.Name,
-					Port: targetSelector.StaticTarget.Port, // TODO: which port should be set (static vs. parent)?
-					Kind: &api.BackendReference{Kind: &api.BackendReference_Backend{
-						Backend: staticBackendRef,
-					}},
+					//Port: targetSelector.StaticTarget.Port, // TODO: which port should be set (static vs. parent)?
+					//Kind: &api.BackendReference{Kind: &api.BackendReference_Backend{
+					//	Backend: staticBackendRef,
+					//}},
 				}
 
 				// Convert protocol if specified
@@ -119,10 +119,10 @@ func processMCPBackendForAgentGateway(ctx krt.HandlerContext, nsCol krt.Collecti
 						// For each mcp port on the service, create an MCP target
 						mcpTarget := &api.MCPTarget{
 							Name: service.Name + "-" + port.Name,
-							Port: port.Port,
-							Kind: &api.BackendReference{
-								Kind: &api.BackendReference_Service{Service: service.Namespace + "/" + service.Name},
-							},
+							//Port: port.Port,
+							//Kind: &api.BackendReference{
+							//	Kind: &api.BackendReference_Service{Service: service.Namespace + "/" + service.Name},
+							//},
 						}
 
 						// TODO: Determine protocol from service annotations or other metadata

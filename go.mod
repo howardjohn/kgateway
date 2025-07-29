@@ -127,7 +127,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
-	github.com/agentgateway/agentgateway v0.6.3-0.20250728194206-5c7cf9331d34
+	github.com/agentgateway/agentgateway v0.6.3-0.20250729150130-9fc90fe02a57
 	github.com/alecthomas/go-check-sumtype v0.3.1 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.6 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
@@ -297,7 +297,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.4
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golangci/dupl v0.0.0-20250308024227-f665c8d69b32 // indirect
 	github.com/golangci/go-printf-func-name v0.1.0 // indirect
 	github.com/golangci/gofmt v0.0.0-20250106114630-d62b90e6713d // indirect
@@ -616,7 +616,7 @@ require (
 replace sigs.k8s.io/controller-tools => github.com/shashankram/controller-tools v0.0.0-20250626172831-f7be064a9132
 
 replace (
-	github.com/agentgateway/agentgateway => github.com/npolshakova/agentgateway v0.0.0-20250729045453-151a45b38253
+	github.com/agentgateway/agentgateway => /home/john/solo/agentgateway
 	github.com/imdario/mergo => github.com/imdario/mergo v0.3.16
 )
 
