@@ -415,7 +415,7 @@ func (s *AgentGwSyncer) buildResourceCollections(inputs Inputs, krtopts krtutil.
 	addresses := s.buildAddressCollections(inputs, krtopts)
 
 	// Build XDS collection
-	s.buildXDSCollection(adpResources, adpBackends, addresses)
+	s.buildXDSCollection(adpResources, adpBackends, addresses, krtopts)
 
 	// Build status reporting
 	s.buildStatusReporting()
@@ -449,15 +449,11 @@ func (s *AgentGwSyncer) buildADPResources(
 	krtopts krtutil.KrtOptions,
 ) krt.Collection[ADPResourcesForGateway] {
 	// Build ports and binds
-	ports := krt.NewCollection(gateways, func(ctx krt.HandlerContext, obj GatewayListener) *IndexObject[string, GatewayListener] {
-		port := fmt.Sprint(obj.parentInfo.Port)
-		return &IndexObject[string, GatewayListener]{
-			Key:     port,
-			Objects: []GatewayListener{obj},
-		}
-	}, krtopts.ToOptions("ports")...)
+	ports := krtutil.UnnamedIndex(gateways, func(l GatewayListener) []string {
+		return []string{fmt.Sprint(l.parentInfo.Port)}
+	}).AsCollection(krtopts.ToOptions("PortBindings")...)
 
-	binds := krt.NewManyCollection(ports, func(ctx krt.HandlerContext, object IndexObject[string, GatewayListener]) []ADPResourcesForGateway {
+	binds := krt.NewManyCollection(ports, func(ctx krt.HandlerContext, object krt.IndexObject[string, GatewayListener]) []ADPResourcesForGateway {
 		port, _ := strconv.Atoi(object.Key)
 		gwReports := make(map[types.NamespacedName]reports.ReportMap, 0)
 		for _, gw := range object.Objects {
@@ -507,8 +503,10 @@ func (s *AgentGwSyncer) buildADPResources(
 	}
 	adpRoutes := ADPRouteCollection(inputs.HTTPRoutes, inputs.GRPCRoutes, inputs.TCPRoutes, inputs.TLSRoutes, routeInputs, krtopts, s.plugins)
 
+	adpPolicies := ADPPolicyCollection(inputs, binds, s.domainSuffix, krtopts)
+
 	// Join all ADP resources
-	allADPResources := krt.JoinCollection([]krt.Collection[ADPResourcesForGateway]{binds, listeners, adpRoutes}, krtopts.ToOptions("ADPResources")...)
+	allADPResources := krt.JoinCollection([]krt.Collection[ADPResourcesForGateway]{binds, listeners, adpRoutes, adpPolicies}, krtopts.ToOptions("ADPResources")...)
 
 	return allADPResources
 }
@@ -683,7 +681,12 @@ func (s *AgentGwSyncer) buildAddressCollections(inputs Inputs, krtopts krtutil.K
 	}, krtopts.ToOptions("XDSAddresses")...)
 }
 
-func (s *AgentGwSyncer) buildXDSCollection(adpResources krt.Collection[ADPResourcesForGateway], adpBackends krt.Collection[envoyResourceWithCustomName], xdsAddresses krt.Collection[envoyResourceWithCustomName]) {
+func (s *AgentGwSyncer) buildXDSCollection(
+	adpResources krt.Collection[ADPResourcesForGateway],
+	adpBackends krt.Collection[envoyResourceWithCustomName],
+	xdsAddresses krt.Collection[envoyResourceWithCustomName],
+	krtopts krtutil.KrtOptions,
+) {
 	// Create an index on adpResources by Gateway to avoid fetching all resources
 	adpResourcesByGateway := krt.NewIndex(adpResources, "gateway", func(resource ADPResourcesForGateway) []types.NamespacedName {
 		return []types.NamespacedName{resource.Gateway}
@@ -768,7 +771,7 @@ func (s *AgentGwSyncer) buildXDSCollection(adpResources krt.Collection[ADPResour
 		}
 		logger.Debug("created XDS resources for gateway with ID", "gwname", fmt.Sprintf("%s,%s", gwNamespacedName.Name, gwNamespacedName.Namespace), "resourceid", result.ResourceName())
 		return result
-	})
+	}, krtopts.ToOptions("agent-xds")...)
 }
 
 func (s *AgentGwSyncer) buildStatusReporting() {
@@ -946,7 +949,8 @@ func (s *AgentGwSyncer) Start(ctx context.Context) error {
 		for _, e := range events {
 			snap := e.Latest()
 			if e.Event == controllers.EventDelete {
-				s.xdsCache.ClearSnapshot(snap.ResourceName())
+				// TODO: we should probably clear, but this has been causing some undiagnosed issues.
+				//s.xdsCache.ClearSnapshot(snap.ResourceName())
 				continue
 			}
 			snapshot := &agentGwSnapshot{

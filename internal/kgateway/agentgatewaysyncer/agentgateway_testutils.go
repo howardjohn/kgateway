@@ -636,7 +636,7 @@ func (tc TestCase) Run(
 	kubeclient.WaitForCacheSync("addresses", ctx.Done(), addressesCollection.HasSynced)
 
 	// build final proxy xds result
-	agentGwSyncer.buildXDSCollection(adpResourcesCollection, adpBackendsCollection, addressesCollection)
+	agentGwSyncer.buildXDSCollection(adpResourcesCollection, adpBackendsCollection, addressesCollection, krtOpts)
 	kubeclient.WaitForCacheSync("xds", ctx.Done(), agentGwSyncer.xDS.HasSynced)
 
 	time.Sleep(500 * time.Millisecond) // Allow collections to populate

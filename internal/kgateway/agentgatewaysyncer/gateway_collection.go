@@ -35,6 +35,8 @@ func toADPResource(t any) *api.Resource {
 		return &api.Resource{Kind: &api.Resource_Listener{Listener: tt.Listener}}
 	case ADPRoute:
 		return &api.Resource{Kind: &api.Resource_Route{Route: tt.Route}}
+	case ADPPolicy:
+		return &api.Resource{Kind: &api.Resource_Policy{Policy: tt.Policy}}
 	}
 	panic("unknown resource kind")
 }
@@ -77,6 +79,18 @@ func (g ADPListener) ResourceName() string {
 }
 
 func (g ADPListener) Equals(other ADPListener) bool {
+	return protoconv.Equals(g, other)
+}
+
+type ADPPolicy struct {
+	*api.Policy
+}
+
+func (g ADPPolicy) ResourceName() string {
+	return "policy/" + g.Name
+}
+
+func (g ADPPolicy) Equals(other ADPPolicy) bool {
 	return protoconv.Equals(g, other)
 }
 

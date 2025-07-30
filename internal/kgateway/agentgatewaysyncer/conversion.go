@@ -433,11 +433,13 @@ func buildADPDestination(
 				Status:  metav1.ConditionFalse,
 				Reason:  gwv1.RouteReasonBackendNotFound,
 				Message: fmt.Sprintf("backend(%s) not found", hostname)}
-		}
-		rb.Backend = &api.BackendReference{
-			Kind: &api.BackendReference_Service{
-				Service: namespace + "/" + hostname,
-			},
+		} else {
+			rb.Backend = &api.BackendReference{
+				Kind: &api.BackendReference_Service{
+					Service: namespace + "/" + hostname,
+				},
+				Port: uint32(svc.Spec.TargetPortNumber),
+			}
 		}
 	case wellknown.ServiceGVK.GroupKind():
 		port = to.Port
