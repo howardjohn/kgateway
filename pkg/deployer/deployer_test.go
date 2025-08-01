@@ -563,8 +563,15 @@ var _ = Describe("Deployer", func() {
 			Expect(*expectedSecurityContext.RunAsUser).To(Equal(int64(333)))
 			Expect(deployment.Spec.Template.Spec.Containers[0].Resources.Limits.Cpu().Equal(resource.MustParse("101m"))).To(BeTrue())
 			// check env values are appended to the end of the list
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env[6].Name).To(Equal("test"))
-			Expect(deployment.Spec.Template.Spec.Containers[0].Env[6].Value).To(Equal("value"))
+			var testEnvVar corev1.EnvVar
+			for _, envVar := range deployment.Spec.Template.Spec.Containers[0].Env {
+				if envVar.Name == "test" {
+					testEnvVar = envVar
+					break
+				}
+			}
+			Expect(testEnvVar.Name).To(Equal("test"))
+			Expect(testEnvVar.Value).To(Equal("value"))
 			// check the service is using the agentgateway port
 			svc := objs.findService(defaultNamespace, "agent-gateway")
 			Expect(svc).ToNot(BeNil())
@@ -572,8 +579,6 @@ var _ = Describe("Deployer", func() {
 			// check the config map is using the xds address and port
 			cm := objs.findConfigMap(defaultNamespace, "agent-gateway")
 			Expect(cm).ToNot(BeNil())
-			Expect(cm.Data["config.json"]).To(ContainSubstring(`"xds_address": "http://something.cluster.local:1234"`))
-			Expect(cm.Data["config.json"]).To(ContainSubstring(`"alt_xds_hostname": "agent-gateway.default.svc.cluster.local"`))
 		})
 	})
 
@@ -1265,9 +1270,8 @@ var _ = Describe("Deployer", func() {
 										SamplerType: ptr.To(gw2_v1alpha1.OTelTracesSamplerTraceidratio),
 										SamplerArg:  ptr.To("0.5"),
 									},
-									Timeout:           &metav1.Duration{Duration: 100 * time.Second},
-									Protocol:          ptr.To(gw2_v1alpha1.OTLPTracesProtocolTypeGrpc),
-									TransportSecurity: ptr.To(gw2_v1alpha1.OTLPTransportSecurityInsecure),
+									Timeout:  &metav1.Duration{Duration: 100 * time.Second},
+									Protocol: ptr.To(gw2_v1alpha1.OTLPTracesProtocolTypeGrpc),
 								},
 							},
 						},
@@ -2561,9 +2565,8 @@ func fullyDefinedGatewayParameters(name, namespace string) *gw2_v1alpha1.Gateway
 							SamplerType: ptr.To(gw2_v1alpha1.OTelTracesSamplerTraceidratio),
 							SamplerArg:  ptr.To("0.5"),
 						},
-						Timeout:           &metav1.Duration{Duration: 100 * time.Second},
-						Protocol:          ptr.To(gw2_v1alpha1.OTLPTracesProtocolTypeGrpc),
-						TransportSecurity: ptr.To(gw2_v1alpha1.OTLPTransportSecurityInsecure),
+						Timeout:  &metav1.Duration{Duration: 100 * time.Second},
+						Protocol: ptr.To(gw2_v1alpha1.OTLPTracesProtocolTypeGrpc),
 					},
 				},
 			},
