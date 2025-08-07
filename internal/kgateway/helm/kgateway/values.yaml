@@ -46,3 +46,4 @@ gateway:
   agentGateway:
     enabled: false
     logLevel: info
+    ca: ""

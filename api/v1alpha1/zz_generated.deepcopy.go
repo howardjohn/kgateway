@@ -236,6 +236,11 @@ func (in *AgentGateway) DeepCopyInto(out *AgentGateway) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.CA != nil {
+		in, out := &in.CA, &out.CA
+		*out = new(string)
+		**out = **in
+	}
 	if in.Image != nil {
 		in, out := &in.Image, &out.Image
 		*out = new(Image)

@@ -990,6 +990,11 @@ type AgentGateway struct {
 	// +optional
 	LogLevel *string `json:"logLevel,omitempty"`
 
+	// CA address to use for mTLS.
+	//
+	// +optional
+	CA *string `json:"ca,omitempty"`
+
 	// The agentgateway container image. See
 	// https://kubernetes.io/docs/concepts/containers/images
 	// for details.
@@ -1038,6 +1043,13 @@ func (in *AgentGateway) GetLogLevel() *string {
 		return nil
 	}
 	return in.LogLevel
+}
+
+func (in *AgentGateway) GetCA() *string {
+	if in == nil {
+		return nil
+	}
+	return in.CA
 }
 
 func (in *AgentGateway) GetImage() *Image {

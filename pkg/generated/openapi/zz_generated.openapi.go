@@ -978,6 +978,13 @@ func schema_kgateway_v2_api_v1alpha1_AgentGateway(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
+					"ca": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CA address to use for mTLS.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"image": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The agentgateway container image. See https://kubernetes.io/docs/concepts/containers/images for details.\n\nDefault values, which may be overridden individually:\n\n\tregistry: ghcr.io/agentgateway\n\trepository: agentgateway\n\ttag: <agentgateway version>\n\tpullPolicy: IfNotPresent",

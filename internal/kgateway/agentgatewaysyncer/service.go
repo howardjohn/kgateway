@@ -408,7 +408,7 @@ const (
 	DisabledTLSModeLabel = "disabled"
 
 	// MutualTLSModeLabel implies that the endpoint is ready to receive agent mTLS connections.
-	MutualTLSModeLabel = "mtls"
+	MutualTLSModeLabel = "istio"
 )
 
 func SupportsTunnel(labels map[string]string, tunnelType string) bool {

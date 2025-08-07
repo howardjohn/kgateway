@@ -67,6 +67,16 @@ spec:
               value: {{ $gateway.agentGateway.logLevel }}
             - name: XDS_ADDRESS
               value: "http://{{ $gateway.xds.host }}:{{ $gateway.xds.port }}"
+            {{- with $gateway.agentGateway.ca }}
+            - name: CA_ADDRESS
+              value: "{{.}}"
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: TRUST_DOMAIN
+              value: cluster.local
+            {{- end}}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
@@ -84,12 +94,30 @@ spec:
             # Make /tmp writeable, needed for pprof
             - name: tmp
               mountPath: /tmp
+            {{- if $gateway.agentGateway.ca }}
+            - mountPath: /var/run/secrets/istio
+              name: istiod-ca-cert
+            - mountPath: /var/run/secrets/tokens
+              name: istio-token
+            {{- end }}
       volumes:
         - name: config-volume
           configMap:
             name: {{ include "kgateway.gateway.fullname" . }}
         - name: tmp
           emptyDir: {}
+        {{- if $gateway.agentGateway.ca }}
+        - configMap:
+            name: istio-ca-root-cert
+          name: istiod-ca-cert
+        - name: istio-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: istio-ca
+                  expirationSeconds: 43200
+                  path: istio-token
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service

@@ -11,6 +11,7 @@ import (
 type AgentGatewayApplyConfiguration struct {
 	Enabled         *bool                    `json:"enabled,omitempty"`
 	LogLevel        *string                  `json:"logLevel,omitempty"`
+	CA              *string                  `json:"ca,omitempty"`
 	Image           *ImageApplyConfiguration `json:"image,omitempty"`
 	SecurityContext *v1.SecurityContext      `json:"securityContext,omitempty"`
 	Resources       *v1.ResourceRequirements `json:"resources,omitempty"`
@@ -36,6 +37,14 @@ func (b *AgentGatewayApplyConfiguration) WithEnabled(value bool) *AgentGatewayAp
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *AgentGatewayApplyConfiguration) WithLogLevel(value string) *AgentGatewayApplyConfiguration {
 	b.LogLevel = &value
+	return b
+}
+
+// WithCA sets the CA field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the CA field is set to the value of the last call.
+func (b *AgentGatewayApplyConfiguration) WithCA(value string) *AgentGatewayApplyConfiguration {
+	b.CA = &value
 	return b
 }
 
