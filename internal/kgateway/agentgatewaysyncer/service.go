@@ -25,8 +25,11 @@ import (
 	"istio.io/istio/pkg/config/host"
 	kubeutil "istio.io/istio/pkg/config/kube"
 	"istio.io/istio/pkg/config/protocol"
+	"istio.io/istio/pkg/config/schema/gvk"
 	"istio.io/istio/pkg/config/schema/kind"
+	"istio.io/istio/pkg/config/schema/kubetypes"
 	"istio.io/istio/pkg/config/visibility"
+	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/maps"
 	"istio.io/istio/pkg/ptr"
@@ -1136,4 +1139,46 @@ func (m *AddressMap) ForEach(fn func(c cluster.ID, addresses []string)) {
 	for c, addresses := range m.Addresses {
 		fn(c, addresses)
 	}
+}
+
+func precomputeServicePtr(w *ServiceInfo) *ServiceInfo {
+	return ptr.Of(precomputeService(*w))
+}
+
+func precomputeService(w ServiceInfo) ServiceInfo {
+	addr := serviceToAddress(w.Service)
+	w.MarshaledAddress = protoconv.MessageToAny(addr)
+	w.AsAddress = AddressInfo{
+		Address:   addr,
+		Marshaled: w.MarshaledAddress,
+	}
+	return w
+}
+
+func serviceToAddress(s *api.Service) *api.Address {
+	return &api.Address{
+		Type: &api.Address_Service{
+			Service: s,
+		},
+	}
+}
+
+// MakeSource is a helper to turn an Object into a model.TypedObject.
+func MakeSource(o controllers.Object) TypedObject {
+	kind := gvk.MustToKind(kubetypes.GvkFromObject(o)).String()
+	return TypedObject{
+		NamespacedName: config.NamespacedName(o),
+		Kind:           kind,
+	}
+}
+
+func (a *index) toNetworkAddress(ctx krt.HandlerContext, vip string) (*api.NetworkAddress, error) {
+	ip, err := netip.ParseAddr(vip)
+	if err != nil {
+		return nil, fmt.Errorf("parse %v: %v", vip, err)
+	}
+	return &api.NetworkAddress{
+		// TODO: calculate network
+		Address: ip.AsSlice(),
+	}, nil
 }

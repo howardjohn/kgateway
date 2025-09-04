@@ -379,10 +379,7 @@ func (s *AgentGwSyncer) buildAddressCollections(krtopts krtinternal.KrtOptions) 
 		SystemNamespace: s.systemNamespace,
 		ClusterID:       s.clusterID,
 	}
-	// For our purposes we don't need pods, so disable them
-	pods := krt.NewStaticCollection[*corev1.Pod](nil, nil, krtopts.ToOptions("disable/pods")...)
-
-	waypoints := workloadIndex.WaypointsCollection(s.agwCollections.Gateways, s.agwCollections.GatewayClasses, pods, krtopts)
+	waypoints := workloadIndex.WaypointsCollection(s.agwCollections.Gateways, s.agwCollections.GatewayClasses, s.agwCollections.Pods, krtopts)
 
 	// Build service and workload collections
 	workloadServices := workloadIndex.ServicesCollection(
@@ -393,8 +390,10 @@ func (s *AgentGwSyncer) buildAddressCollections(krtopts krtinternal.KrtOptions) 
 		s.agwCollections.Namespaces,
 		krtopts,
 	)
+	NodeLocality := NodesCollection(s.agwCollections.Nodes, krtopts.ToOptions("NodeLocality")...)
 	workloads := workloadIndex.WorkloadsCollection(
-		s.agwCollections.WrappedPods,
+		s.agwCollections.Pods,
+		NodeLocality,
 		workloadServices,
 		s.agwCollections.EndpointSlices,
 		krtopts,
