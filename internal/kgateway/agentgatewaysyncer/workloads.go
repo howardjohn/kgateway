@@ -4,7 +4,7 @@ import (
 	"net/netip"
 
 	"github.com/agentgateway/agentgateway/go/api"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -31,7 +31,7 @@ import (
 // index maintains an index of ambient WorkloadInfo objects by various keys.
 // These are intentionally pre-computed based on events such that lookups are efficient.
 type index struct {
-	namespaces krt.Collection[*v1.Namespace]
+	namespaces krt.Collection[*corev1.Namespace]
 
 	SystemNamespace string
 	ClusterID       string
@@ -41,7 +41,7 @@ type index struct {
 // A Workload represents a single addressable unit of compute -- typically a Pod or a VM.
 // Workloads can come from a variety of sources; these are joined together to build one complete `Collection[WorkloadInfo]`.
 func (a *index) WorkloadsCollection(
-	pods krt.Collection[*v1.Pod],
+	pods krt.Collection[*corev1.Pod],
 	nodes krt.Collection[Node],
 	workloadServices krt.Collection[ServiceInfo],
 	endpointSlices krt.Collection[*discovery.EndpointSlice],
@@ -90,8 +90,8 @@ func podWorkloadBuilder(
 	endpointSlicesAddressIndex krt.Index[TargetRef, *discovery.EndpointSlice],
 	nodes krt.Collection[Node],
 	clusterId string,
-) krt.TransformationSingle[*v1.Pod, WorkloadInfo] {
-	return func(ctx krt.HandlerContext, p *v1.Pod) *WorkloadInfo {
+) krt.TransformationSingle[*corev1.Pod, WorkloadInfo] {
+	return func(ctx krt.HandlerContext, p *corev1.Pod) *WorkloadInfo {
 		// Pod Is Pending but have a pod IP should be a valid workload, we should build it ,
 		// Such as the pod have initContainer which is initialing.
 		// See https://github.com/istio/istio/issues/48854
@@ -102,7 +102,7 @@ func podWorkloadBuilder(
 		if len(k8sPodIPs) == 0 {
 			return nil
 		}
-		podIPs, err := slices.MapErr(k8sPodIPs, func(e v1.PodIP) ([]byte, error) {
+		podIPs, err := slices.MapErr(k8sPodIPs, func(e corev1.PodIP) ([]byte, error) {
 			n, err := netip.ParseAddr(e.IP)
 			if err != nil {
 				return nil, err
@@ -168,7 +168,7 @@ func (a *index) podWorkloadBuilder(
 	endpointSlices krt.Collection[*discovery.EndpointSlice],
 	endpointSlicesAddressIndex krt.Index[TargetRef, *discovery.EndpointSlice],
 	nodes krt.Collection[Node],
-) krt.TransformationSingle[*v1.Pod, WorkloadInfo] {
+) krt.TransformationSingle[*corev1.Pod, WorkloadInfo] {
 	return podWorkloadBuilder(
 		workloadServices,
 		workloadServicesNamespaceIndex,
@@ -179,10 +179,10 @@ func (a *index) podWorkloadBuilder(
 	)
 }
 
-func getPodIPs(p *v1.Pod) []v1.PodIP {
+func getPodIPs(p *corev1.Pod) []corev1.PodIP {
 	k8sPodIPs := p.Status.PodIPs
 	if len(k8sPodIPs) == 0 && p.Status.PodIP != "" {
-		k8sPodIPs = []v1.PodIP{{IP: p.Status.PodIP}}
+		k8sPodIPs = []corev1.PodIP{{IP: p.Status.PodIP}}
 	}
 	return k8sPodIPs
 }
@@ -196,7 +196,7 @@ func getPodIPs(p *v1.Pod) []v1.PodIP {
 // we do not implicitly merge a Pod with an EndpointSlice just based on IP.
 func matchingServicesWithoutSelectors(
 	ctx krt.HandlerContext,
-	p *v1.Pod,
+	p *corev1.Pod,
 	alreadyMatchingServices []ServiceInfo,
 	workloadServices krt.Collection[ServiceInfo],
 	endpointSlices krt.Collection[*discovery.EndpointSlice],
@@ -290,7 +290,7 @@ func endpointSlicesBuilder(
 				continue
 			}
 			// We only support TCP for now
-			if p.Protocol == nil || *p.Protocol != v1.ProtocolTCP {
+			if p.Protocol == nil || *p.Protocol != corev1.ProtocolTCP {
 				continue
 			}
 			// Endpoint slice port has name (service port name, not containerPort) and port (targetPort)
@@ -403,12 +403,12 @@ func pickTrustDomain() string {
 	return ""
 }
 
-func workloadName(pod *v1.Pod) string {
+func workloadName(pod *corev1.Pod) string {
 	objMeta, _ := kubeutil.GetWorkloadMetaFromPod(pod)
 	return objMeta.Name
 }
 
-func constructServices(p *v1.Pod, services []ServiceInfo) map[string]*api.PortList {
+func constructServices(p *corev1.Pod, services []ServiceInfo) map[string]*api.PortList {
 	res := map[string]*api.PortList{}
 	for _, svc := range services {
 		n := namespacedHostname(svc.Service.Namespace, svc.Service.Hostname)
@@ -439,7 +439,7 @@ func constructServices(p *v1.Pod, services []ServiceInfo) map[string]*api.PortLi
 	return res
 }
 
-func getPodLocality(ctx krt.HandlerContext, Nodes krt.Collection[Node], pod *v1.Pod) *api.Locality {
+func getPodLocality(ctx krt.HandlerContext, Nodes krt.Collection[Node], pod *corev1.Pod) *api.Locality {
 	// NodeName is set by the scheduler after the pod is created
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#late-initialization
 	node := krt.FetchOne(ctx, Nodes, krt.FilterKey(pod.Spec.NodeName))
@@ -517,22 +517,22 @@ func workloadToAddress(w *api.Workload) *api.Address {
 }
 
 // IsPodReady is copied from kubernetes/pkg/api/v1/pod/utils.go
-func IsPodReady(pod *v1.Pod) bool {
+func IsPodReady(pod *corev1.Pod) bool {
 	return IsPodReadyConditionTrue(pod.Status)
 }
 
 // IsPodReadyConditionTrue returns true if a pod is ready; false otherwise.
-func IsPodReadyConditionTrue(status v1.PodStatus) bool {
+func IsPodReadyConditionTrue(status corev1.PodStatus) bool {
 	condition := GetPodReadyCondition(status)
-	return condition != nil && condition.Status == v1.ConditionTrue
+	return condition != nil && condition.Status == corev1.ConditionTrue
 }
 
-func GetPodReadyCondition(status v1.PodStatus) *v1.PodCondition {
-	_, condition := GetPodCondition(&status, v1.PodReady)
+func GetPodReadyCondition(status corev1.PodStatus) *corev1.PodCondition {
+	_, condition := GetPodCondition(&status, corev1.PodReady)
 	return condition
 }
 
-func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (int, *v1.PodCondition) {
+func GetPodCondition(status *corev1.PodStatus, conditionType corev1.PodConditionType) (int, *corev1.PodCondition) {
 	if status == nil {
 		return -1, nil
 	}
@@ -541,7 +541,7 @@ func GetPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 
 // GetPodConditionFromList extracts the provided condition from the given list of condition and
 // returns the index of the condition and the condition. Returns -1 and nil if the condition is not present.
-func GetPodConditionFromList(conditions []v1.PodCondition, conditionType v1.PodConditionType) (int, *v1.PodCondition) {
+func GetPodConditionFromList(conditions []corev1.PodCondition, conditionType corev1.PodConditionType) (int, *corev1.PodCondition) {
 	if conditions == nil {
 		return -1, nil
 	}
@@ -553,14 +553,14 @@ func GetPodConditionFromList(conditions []v1.PodCondition, conditionType v1.PodC
 	return -1, nil
 }
 
-func generatePodUID(clusterID string, p *v1.Pod) string {
+func generatePodUID(clusterID string, p *corev1.Pod) string {
 	return clusterID + "//" + "Pod/" + p.Namespace + "/" + p.Name
 }
 
-func FindPortName(pod *v1.Pod, name string) (int32, bool) {
+func FindPortName(pod *corev1.Pod, name string) (int32, bool) {
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
-			if port.Name == name && port.Protocol == v1.ProtocolTCP {
+			if port.Name == name && port.Protocol == corev1.ProtocolTCP {
 				return port.ContainerPort, true
 			}
 		}
