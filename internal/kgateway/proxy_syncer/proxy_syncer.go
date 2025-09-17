@@ -202,7 +202,7 @@ var logger = logging.New("proxy_syncer")
 
 func (s *ProxySyncer) Init(ctx context.Context, krtopts krtinternal.KrtOptions) {
 	// all backends with policies attached in a single collection
-	finalBackends := krt.JoinCollection(s.commonCols.BackendIndex.BackendsWithPolicy(),
+	finalBackends := krt.JoinCollection(s.commonCols.BackendIndex.BackendsWithPolicyRequiringStatus(),
 		// WithJoinUnchecked enables a more optimized lookup on the hotpath by assuming we do not have any overlapping ResourceName
 		// in the backend collection.
 		append(krtopts.ToOptions("FinalBackends"), krt.WithJoinUnchecked())...)

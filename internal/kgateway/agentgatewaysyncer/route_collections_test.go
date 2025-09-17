@@ -861,12 +861,7 @@ func TestADPRouteCollection(t *testing.T) {
 			// Create a map of actual routes by key for easy lookup
 			actualRoutes := make(map[string]*api.Route)
 			for _, result := range results {
-				require.NotNil(t, result.Resources, "Resource should not be nil")
-				for _, resource := range result.Resources {
-					routeResource := resource.GetRoute()
-					require.NotNil(t, routeResource, "Route resource should not be nil")
-					actualRoutes[routeResource.GetKey()] = routeResource
-				}
+				actualRoutes[result.ResourceName()] = result.Resource.GetRoute()
 			}
 			// Verify expected count
 			assert.Equal(t, tc.expectedCount, len(actualRoutes), "Expected %d routes but got %d", tc.expectedCount, len(actualRoutes))
@@ -1469,12 +1464,7 @@ func TestADPRouteCollectionGRPC(t *testing.T) {
 			// Create a map of actual routes by key for easy lookup
 			actualRoutes := make(map[string]*api.Route)
 			for _, result := range results {
-				require.NotNil(t, result.Resources, "Resource should not be nil")
-				for _, resource := range result.Resources {
-					routeResource := resource.GetRoute()
-					require.NotNil(t, routeResource, "Route resource should not be nil")
-					actualRoutes[routeResource.GetKey()] = routeResource
-				}
+				actualRoutes[result.ResourceName()] = result.Resource.GetRoute()
 			}
 			// Verify expected count
 			assert.Equal(t, tc.expectedCount, len(actualRoutes), "Expected %d routes but got %d", tc.expectedCount, len(actualRoutes))
@@ -1916,9 +1906,7 @@ func TestADPRouteCollectionWithFilters(t *testing.T) {
 			require.Len(t, results, 1, "Expected exactly one route")
 
 			result := results[0]
-			require.NotNil(t, result.Resources, "Resource should not be nil")
-
-			routeResource := result.Resources[0].GetRoute()
+			routeResource := result.Resource.GetRoute()
 			require.NotNil(t, routeResource, "Route resource should not be nil")
 
 			// Verify filters

@@ -1,12 +1,12 @@
 package ir
 
 import (
-	"fmt"
 	"maps"
 	"strings"
 
 	"github.com/agentgateway/agentgateway/go/api"
 	"google.golang.org/protobuf/proto"
+	"istio.io/istio/pilot/pkg/util/protoconv"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
@@ -49,12 +49,12 @@ func GetADPResourceName(r *api.Resource) string {
 		return "backend/" + t.Backend.GetName()
 	case *api.Resource_Route:
 		return "route/" + t.Route.GetKey()
+	case *api.Resource_TcpRoute:
+		return "tcproute/" + t.TcpRoute.GetKey()
 	case *api.Resource_Policy:
 		return "policy/" + t.Policy.GetName()
-	default:
-		logger.Error("unknown ADP resource", "type", fmt.Sprintf("%T", t))
-		return "unknown/" + r.String()
 	}
+	return "unknown/" + r.String()
 }
 
 func (g ADPResourcesForGateway) Equals(other ADPResourcesForGateway) bool {
@@ -90,4 +90,26 @@ func (r ADPCacheAddress) Equals(in ADPCacheAddress) bool {
 		proto.Equal(r.Address, in.Address) &&
 		r.AddressVersion == in.AddressVersion &&
 		r.AddressResourceName == in.AddressResourceName
+}
+
+// ADPResource maps a specific resource to a Gateway instance.
+// Gateway may be empty, which means it applies to all gateways
+type ADPResource struct {
+	Resource *api.Resource        `json:"resource"`
+	Gateway  types.NamespacedName `json:"gateway"`
+}
+
+func (g ADPResource) IntoProto() *api.Resource {
+	return g.Resource
+}
+
+func (g ADPResource) ResourceName() string {
+	if g.Gateway == (types.NamespacedName{}) {
+		return GetADPResourceName(g.Resource)
+	}
+	return g.Gateway.String() + "/" + GetADPResourceName(g.Resource)
+}
+
+func (g ADPResource) Equals(other ADPResource) bool {
+	return protoconv.Equals(g.Resource, other.Resource) && g.Gateway == other.Gateway
 }

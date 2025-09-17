@@ -1,6 +1,7 @@
 package proxy_syncer
 
 import (
+	"istio.io/istio/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -23,13 +24,16 @@ var _ ObjWithAttachedPolicies = ir.BackendObjectIR{}
 func GenerateBackendPolicyReport(in []*ir.BackendObjectIR) reports.ReportMap {
 	merged := reports.NewReportMap()
 	reporter := reports.NewReporter(&merged)
+	log.Errorf("howardjohn:  GenerateBackendPolicyReport")
 
 	// iterate all backends and aggregate all policies attached to them
 	// we track each attachment point of the policy to be tracked as an
 	// ancestor for reporting status
 	for _, obj := range in {
-		for _, polAtts := range obj.GetAttachedPolicies().Policies {
+		log.Errorf("howardjohn: %v %v %v", obj.Name, obj.Kind, len(obj.GetAttachedPolicies().Policies))
+		for k, polAtts := range obj.GetAttachedPolicies().Policies {
 			for _, polAtt := range polAtts {
+				log.Errorf("howardjohn: %v:%v", k, polAtt.PolicyRef)
 				if polAtt.PolicyRef == nil {
 					// the policyRef may be nil in the case of virtual plugins (e.g. istio settings)
 					// since there's no real policy object, we don't need to generate status for it

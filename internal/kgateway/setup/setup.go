@@ -288,7 +288,7 @@ func (s *setup) Start(ctx context.Context) error {
 		slog.Error("error creating agw common collections", "error", err)
 		return err
 	}
-	l, err := net.Listen("tcp", "127.0.0.1:11122")
+	l, err := net.Listen("tcp", "0.0.0.0:11122")
 	if err != nil {
 		return err
 	}

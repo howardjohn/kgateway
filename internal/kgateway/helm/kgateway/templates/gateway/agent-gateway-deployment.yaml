@@ -76,7 +76,7 @@ spec:
             - name: RUST_LOG
               value: {{ $gateway.agentGateway.logLevel }}
             - name: XDS_ADDRESS
-              value: "http://{{ $gateway.xds.host }}:{{ $gateway.xds.port }}"
+              value: "http://kgateway.kgateway-system.svc.cluster.local:11122"
             - name: NAMESPACE
               valueFrom:
                 fieldRef:

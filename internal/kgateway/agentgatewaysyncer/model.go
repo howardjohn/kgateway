@@ -6,12 +6,10 @@ import (
 	"reflect"
 	"slices"
 	"time"
-	"github.com/agentgateway/agentgateway/go/api"
 
 	udpa "github.com/cncf/xds/go/udpa/type/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"istio.io/istio/pilot/pkg/util/protoconv"
 	"istio.io/istio/pkg/config/schema/kind"
 	"istio.io/istio/pkg/util/hash"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -266,41 +264,4 @@ func toString(rk any) string {
 		return rk.(fmt.Stringer).String()
 	}
 	return tk
-}
-
-// ADPResource maps a specific resource to a Gateway instance.
-// Gateway may be empty, which means it applies to all gateways
-type ADPResource struct {
-	Resource *api.Resource `json:"resource"`
-	Gateway  types.NamespacedName  `json:"gateway"`
-}
-
-
-func (g ADPResource) IntoProto() proto.Message {
-	return g.Resource
-}
-func (g ADPResource) ResourceName() string {
-	return getADPResourceName(g.Resource)
-}
-
-func (g ADPResource) Equals(other ADPResource) bool {
-	return protoconv.Equals(g.Resource, other.Resource) && g.Gateway == other.Gateway
-}
-
-func getADPResourceName(r *api.Resource) string {
-	switch t := r.GetKind().(type) {
-	case *api.Resource_Bind:
-		return "bind/" + t.Bind.GetKey()
-	case *api.Resource_Listener:
-		return "listener/" + t.Listener.GetKey()
-	case *api.Resource_Backend:
-		return "backend/" + t.Backend.GetName()
-	case *api.Resource_Route:
-		return "route/" + t.Route.GetKey()
-	case *api.Resource_TcpRoute:
-		return "tcproute/" + t.TcpRoute.GetKey()
-	case *api.Resource_Policy:
-		return "policy/" + t.Policy.GetName()
-	}
-	return "unknown/" + r.String()
 }

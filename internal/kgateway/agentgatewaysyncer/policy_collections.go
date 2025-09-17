@@ -1,19 +1,21 @@
 package agentgatewaysyncer
 
 import (
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/ir"
 	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/ptr"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func ADPPolicyCollection(binds krt.Collection[ADPResource], agwPlugins plugins.AgentgatewayPlugin) krt.Collection[ADPResource] {
+type PolicyStatusCollections = map[schema.GroupKind]krt.StatusCollection[controllers.Object, v1alpha2.PolicyStatus]
+
+func ADPPolicyCollection(agwPlugins plugins.AgentgatewayPlugin) (krt.Collection[ir.ADPResource], PolicyStatusCollections) {
 	var allPolicies []krt.Collection[plugins.ADPPolicy]
-	policyStatusMap := map[schema.GroupKind]krt.StatusCollection[controllers.Object, v1alpha2.PolicyStatus]{}
+	policyStatusMap := PolicyStatusCollections{}
 	// Collect all policies from registered plugins.
 	// Note: Only one plugin should be used per source GVK.
 	// Avoid joining collections per-GVK before passing them to a plugin.
@@ -27,14 +29,8 @@ func ADPPolicyCollection(binds krt.Collection[ADPResource], agwPlugins plugins.A
 	}
 	joinPolicies := krt.JoinCollection(allPolicies, krt.WithName("AllPolicies"))
 
-	allPoliciesCol := krt.NewManyCollection(joinPolicies, func(ctx krt.HandlerContext, i plugins.ADPPolicy) []ADPResource {
-
-		res := make([]ADPResource, 0, len(uniq))
-		for u := range uniq {
-			logger.Debug("generating policies for gateway", "gateway", u)
-			res = append(res, toResource2(u, i))
-		}
-		return res
+	allPoliciesCol := krt.NewCollection(joinPolicies, func(ctx krt.HandlerContext, i plugins.ADPPolicy) *ir.ADPResource {
+		return ptr.Of(toResourceGlobal(i))
 	})
 
 	return allPoliciesCol, policyStatusMap

@@ -1,6 +1,8 @@
 package agentgatewaysyncer
 
 import (
+	"fmt"
+
 	"github.com/agentgateway/agentgateway/go/api"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
 	istio "istio.io/api/networking/v1alpha3"
@@ -39,8 +41,9 @@ func toADPResource(t any) *api.Resource {
 		return &api.Resource{Kind: &api.Resource_TcpRoute{TcpRoute: tt.TCPRoute}}
 	case plugins.ADPPolicy:
 		return &api.Resource{Kind: &api.Resource_Policy{Policy: tt.Policy}}
+	case *api.Resource: return tt
 	}
-	panic("unknown resource kind")
+	panic(fmt.Sprintf("unknown resource kind %T", t))
 }
 
 func toResourceWithRoutes(gw types.NamespacedName, resources []*api.Resource, attachedRoutes map[string]uint, rm reports.ReportMap) ir.ADPResourcesForGateway {
@@ -60,10 +63,16 @@ func toResource(gw types.NamespacedName, resources []*api.Resource, rm reports.R
 	}
 }
 
-func toResource2(gw types.NamespacedName, resource any) ADPResource {
-	return ADPResource{
+func toResourceForGateway(gw types.NamespacedName, resource any) ir.ADPResource {
+	return ir.ADPResource{
 		Resource: toADPResource(resource),
 		Gateway:   gw,
+	}
+}
+
+func toResourceGlobal(resource any) ir.ADPResource {
+	return ir.ADPResource{
+		Resource: toADPResource(resource),
 	}
 }
 

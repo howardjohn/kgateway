@@ -743,7 +743,7 @@ func (tc TestCase) Run(
 		// during translation, instead their reports are generated separately by GenerateBackendPolicyReport().
 		// We need to merge both report types to capture all policy statuses for golden file testing.
 		var backendIRs []*ir.BackendObjectIR
-		for _, col := range commoncol.BackendIndex.BackendsWithPolicy() {
+		for _, col := range commoncol.BackendIndex.BackendsWithPolicyRequiringStatus() {
 			backendIRs = append(backendIRs, col.List()...)
 		}
 		backendPolicyReports := proxy_syncer.GenerateBackendPolicyReport(backendIRs)
@@ -766,7 +766,7 @@ func (tc TestCase) Run(
 
 		ucc := ir.NewUniqlyConnectedClient("test", "test", nil, ir.PodLocality{})
 		var clusters []*envoyclusterv3.Cluster
-		for _, col := range commoncol.BackendIndex.BackendsWithPolicy() {
+		for _, col := range commoncol.BackendIndex.BackendsWithPolicyRequiringStatus() {
 			for _, backend := range col.List() {
 				cluster, err := translator.GetUpstreamTranslator().TranslateBackend(krt.TestingDummyContext{}, ucc, backend)
 				r.NoErrorf(err, "error translating backend %s", backend.GetName())

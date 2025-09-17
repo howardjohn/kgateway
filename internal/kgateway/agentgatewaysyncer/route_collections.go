@@ -37,7 +37,7 @@ func ADPRouteCollection(
 	tlsRouteCol krt.Collection[*gwv1alpha2.TLSRoute],
 	inputs RouteContextInputs,
 	krtopts krtinternal.KrtOptions,
-) krt.Collection[agwir.ADPResourcesForGateway] {
+) krt.Collection[agwir.ADPResource] {
 	httpRoutes := createRouteCollection(httpRouteCol, inputs, krtopts, "ADPHTTPRoutes",
 		func(ctx RouteContext, obj *gwv1.HTTPRoute, rep reporter.Reporter) (RouteContext, iter.Seq2[ADPRoute, *reporter.RouteCondition]) {
 			route := obj.Spec
@@ -103,7 +103,7 @@ func ADPRouteCollection(
 			}
 		})
 
-	routes := krt.JoinCollection([]krt.Collection[agwir.ADPResourcesForGateway]{httpRoutes, grpcRoutes, tcpRoutes, tlsRoutes}, krtopts.ToOptions("ADPRoutes")...)
+	routes := krt.JoinCollection([]krt.Collection[agwir.ADPResource]{httpRoutes, grpcRoutes, tcpRoutes, tlsRoutes}, krtopts.ToOptions("ADPRoutes")...)
 
 	return routes
 }
@@ -119,8 +119,9 @@ func processParentReferences[T any](
 	routeNN types.NamespacedName, // <-- route namespace/name so we can detect cross-NS parents
 	routeReporter reporter.RouteReporter,
 	resourceMapper func(T, routeParentReference) *api.Resource,
-) map[types.NamespacedName][]*api.Resource {
-	resourcesPerGateway := make(map[types.NamespacedName][]*api.Resource)
+) []agwir.ADPResource {
+
+	resources := make([]agwir.ADPResource, 0, len(parentRefs))
 
 	// Build the "allowed" set from filteredReferences (listener-scoped).
 	allowed := make(map[string]struct{})
@@ -173,15 +174,12 @@ func processParentReferences[T any](
 		if !isAllowed {
 			continue
 		}
-		var mapped []*api.Resource
 		routes := gwResult.routes
-		mapped = make([]*api.Resource, 0, len(routes))
 		for i := range routes {
 			if r := resourceMapper(routes[i], parent); r != nil {
-				mapped = append(mapped, r)
+				resources = append(resources, toResourceForGateway(gwNN, r))
 			}
 		}
-		resourcesPerGateway[gwNN] = append(resourcesPerGateway[gwNN], mapped...)
 	}
 
 	// Emit exactly ONE ParentStatus per Gateway (aggregate across listeners; no SectionName).
@@ -246,7 +244,7 @@ func processParentReferences[T any](
 			}(),
 		})
 	}
-	return resourcesPerGateway
+	return resources
 }
 
 // reasonResolvedRefs picks a ResolvedRefs reason from a conversion failure condition.
@@ -304,8 +302,8 @@ func createRouteCollectionGeneric[T controllers.Object, R comparable](
 	collectionName string,
 	translator func(ctx RouteContext, obj T, rep reporter.Reporter) (RouteContext, iter.Seq2[R, *reporter.RouteCondition]),
 	resourceTransformer func(route R, parent routeParentReference) *api.Resource,
-) krt.Collection[agwir.ADPResourcesForGateway] {
-	return krt.NewManyCollection(routeCol, func(krtctx krt.HandlerContext, obj T) []agwir.ADPResourcesForGateway {
+) krt.Collection[agwir.ADPResource] {
+	return krt.NewManyCollection(routeCol, func(krtctx krt.HandlerContext, obj T) []agwir.ADPResource {
 		logger.Debug("translating route", "route_name", obj.GetName(), "resource_version", obj.GetResourceVersion())
 
 		ctx := inputs.WithCtx(krtctx)
@@ -327,7 +325,7 @@ func createRouteCollectionGeneric[T controllers.Object, R comparable](
 		attachedRoutes := buildAttachedRoutesMapAllowed(allowedParents, routeNN)
 		ensureZeroes(attachedRoutes, ln)
 
-		resourcesPerGateway := processParentReferences[R](
+		resources := processParentReferences[R](
 			parentRefs,
 			gwResult,
 			routeNN,
@@ -335,31 +333,7 @@ func createRouteCollectionGeneric[T controllers.Object, R comparable](
 			resourceTransformer,
 		)
 
-		var results []agwir.ADPResourcesForGateway
-		allRelevantGateways := make(map[types.NamespacedName]struct{})
-
-		// Collect all relevant gateways
-		for gw := range resourcesPerGateway {
-			allRelevantGateways[gw] = struct{}{}
-		}
-		for gw := range attachedRoutes {
-			allRelevantGateways[gw] = struct{}{}
-		}
-
-		for gw := range allRelevantGateways {
-			var resources []*api.Resource
-			var routeCounts map[string]uint
-
-			if res, hasResources := resourcesPerGateway[gw]; hasResources {
-				resources = res
-			}
-			if ar, hasRoutes := attachedRoutes[gw]; hasRoutes {
-				routeCounts = ar
-			}
-
-			results = append(results, toResourceWithRoutes(gw, resources, routeCounts, rm))
-		}
-		return results
+		return resources
 	}, krtopts.ToOptions(collectionName)...)
 }
 
@@ -370,7 +344,7 @@ func createRouteCollection[T controllers.Object](
 	krtopts krtinternal.KrtOptions,
 	collectionName string,
 	translator func(ctx RouteContext, obj T, rep reporter.Reporter) (RouteContext, iter.Seq2[ADPRoute, *reporter.RouteCondition]),
-) krt.Collection[agwir.ADPResourcesForGateway] {
+) krt.Collection[agwir.ADPResource] {
 	return createRouteCollectionGeneric(
 		routeCol,
 		inputs,
@@ -398,7 +372,7 @@ func createTCPRouteCollection[T controllers.Object](
 	krtopts krtinternal.KrtOptions,
 	collectionName string,
 	translator func(ctx RouteContext, obj T, rep reporter.Reporter) (RouteContext, iter.Seq2[ADPTCPRoute, *reporter.RouteCondition]),
-) krt.Collection[agwir.ADPResourcesForGateway] {
+) krt.Collection[agwir.ADPResource] {
 	return createRouteCollectionGeneric(
 		routeCol,
 		inputs,

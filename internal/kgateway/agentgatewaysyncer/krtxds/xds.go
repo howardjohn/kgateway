@@ -45,19 +45,23 @@ func TypeName[T proto.Message]() string {
 	return "type.googleapis.com/" + string((*ft).ProtoReflect().Descriptor().FullName())
 }
 
-type IntoProto interface {
-	IntoProto() proto.Message
+type IntoProto[T proto.Message] interface {
+	IntoProto() T
 }
 
 type DiscoveryResource struct {
 	*discovery.Resource
 }
 
+func (d DiscoveryResource) Equals(other DiscoveryResource) bool {
+	return protoconv.Equals(d.Resource, other.Resource)
+}
+
 func (d DiscoveryResource) ResourceName() string {
 	return d.Name
 }
 
-func Collection[T IntoProto, TT proto.Message](collection krt.Collection[T]) Registration {
+func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T]) Registration {
 	return func(m map[string]krt.Collection[DiscoveryResource], pushChannel chan *PushRequest) func(stop <-chan struct{}) {
 		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
 			return &DiscoveryResource{Resource: &discovery.Resource{
@@ -428,7 +432,6 @@ func (conn *Connection) sendDelta(res *discovery.DeltaDiscoveryResponse) error {
 // protection. Original code avoided the mutexes by doing both 'push' and 'process requests' in same thread.
 func (s *DiscoveryServer) processDeltaRequest(req *discovery.DeltaDiscoveryRequest, con *Connection) error {
 	stype := v3.GetShortType(req.TypeUrl)
-	log.SetOutputLevel(istiolog.DebugLevel)
 	log.Debugf("ADS:%s: REQ %s resources sub:%d unsub:%d nonce:%s", stype,
 		con.ID(), len(req.ResourceNamesSubscribe), len(req.ResourceNamesUnsubscribe), req.ResponseNonce)
 
@@ -444,6 +447,7 @@ func (s *DiscoveryServer) processDeltaRequest(req *discovery.DeltaDiscoveryReque
 		// is used by the XDS cache to determine if a entry is stale. If we use Now() with an old push context,
 		// we may end up overriding active cache entries with stale ones.
 		Start: con.proxy.LastPushTime,
+		IsFromRequest: true,
 		Delta: model.ResourceDelta{
 			// Record sub/unsub, but drop synthetic wildcard info
 			Subscribed:   subs,
@@ -1095,6 +1099,8 @@ type PushRequest struct {
 	// The kind of resources are defined in pkg/config/schemas.
 	ConfigsUpdated map[TypeUrl]sets.String
 
+	IsFromRequest bool
+
 	// Start represents the time a push was started. This represents the time of adding to the PushQueue.
 	// Note that this does not include time spent debouncing.
 	Start time.Time
@@ -1109,7 +1115,7 @@ type PushRequest struct {
 
 func (r PushRequest) IsRequest() bool {
 	// TODO(krt)
-	return true
+	return r.IsFromRequest
 }
 func (pr *PushRequest) PushReason() string {
 	if pr.IsRequest() {
