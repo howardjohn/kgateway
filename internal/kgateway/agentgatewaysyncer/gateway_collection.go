@@ -2,6 +2,7 @@ package agentgatewaysyncer
 
 import (
 	"github.com/agentgateway/agentgateway/go/api"
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
 	istio "istio.io/api/networking/v1alpha3"
 	"istio.io/istio/pilot/pkg/util/protoconv"
 	"istio.io/istio/pkg/kube/krt"
@@ -36,7 +37,7 @@ func toADPResource(t any) *api.Resource {
 		return &api.Resource{Kind: &api.Resource_Route{Route: tt.Route}}
 	case ADPTCPRoute:
 		return &api.Resource{Kind: &api.Resource_TcpRoute{TcpRoute: tt.TCPRoute}}
-	case ADPPolicy:
+	case plugins.ADPPolicy:
 		return &api.Resource{Kind: &api.Resource_Policy{Policy: tt.Policy}}
 	}
 	panic("unknown resource kind")
@@ -56,6 +57,13 @@ func toResource(gw types.NamespacedName, resources []*api.Resource, rm reports.R
 		Resources: resources,
 		Gateway:   gw,
 		Report:    rm,
+	}
+}
+
+func toResource2(gw types.NamespacedName, resource any) ADPResource {
+	return ADPResource{
+		Resource: toADPResource(resource),
+		Gateway:   gw,
 	}
 }
 
@@ -80,18 +88,6 @@ func (g ADPListener) ResourceName() string {
 }
 
 func (g ADPListener) Equals(other ADPListener) bool {
-	return protoconv.Equals(g, other)
-}
-
-type ADPPolicy struct {
-	*api.Policy
-}
-
-func (g ADPPolicy) ResourceName() string {
-	return "policy/" + g.Name
-}
-
-func (g ADPPolicy) Equals(other ADPPolicy) bool {
 	return protoconv.Equals(g, other)
 }
 

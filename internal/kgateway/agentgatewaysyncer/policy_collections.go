@@ -1,18 +1,17 @@
 package agentgatewaysyncer
 
 import (
-	"github.com/agentgateway/agentgateway/go/api"
 	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
-	"istio.io/istio/pkg/slices"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/gateway-api/apis/v1alpha2"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/ir"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func ADPPolicyCollection(binds krt.Collection[ir.ADPResourcesForGateway], agwPlugins plugins.AgentgatewayPlugin) (krt.Collection[ir.ADPResourcesForGateway], map[schema.GroupKind]krt.StatusCollection[controllers.Object, v1alpha2.PolicyStatus]) {
+func ADPPolicyCollection(binds krt.Collection[ADPResource], agwPlugins plugins.AgentgatewayPlugin) krt.Collection[ADPResource] {
 	var allPolicies []krt.Collection[plugins.ADPPolicy]
 	policyStatusMap := map[schema.GroupKind]krt.StatusCollection[controllers.Object, v1alpha2.PolicyStatus]{}
 	// Collect all policies from registered plugins.
@@ -28,20 +27,14 @@ func ADPPolicyCollection(binds krt.Collection[ir.ADPResourcesForGateway], agwPlu
 	}
 	joinPolicies := krt.JoinCollection(allPolicies, krt.WithName("AllPolicies"))
 
-	// Generate all policies using the plugin system
-	allPoliciesCol := krt.NewCollection(binds, func(ctx krt.HandlerContext, i ir.ADPResourcesForGateway) *ir.ADPResourcesForGateway {
-		logger.Debug("generating policies for gateway", "gateway", i.Gateway)
+	allPoliciesCol := krt.NewManyCollection(joinPolicies, func(ctx krt.HandlerContext, i plugins.ADPPolicy) []ADPResource {
 
-		// Convert all plugins.ADPPolicy structs to api.Resource structs
-		fetchedPolicies := krt.Fetch(ctx, joinPolicies)
-		allResources := slices.Map(fetchedPolicies, func(policy plugins.ADPPolicy) *api.Resource {
-			return toADPResource(ADPPolicy{policy.Policy})
-		})
-
-		return &ir.ADPResourcesForGateway{
-			Resources: allResources,
-			Gateway:   i.Gateway,
+		res := make([]ADPResource, 0, len(uniq))
+		for u := range uniq {
+			logger.Debug("generating policies for gateway", "gateway", u)
+			res = append(res, toResource2(u, i))
 		}
+		return res
 	})
 
 	return allPoliciesCol, policyStatusMap

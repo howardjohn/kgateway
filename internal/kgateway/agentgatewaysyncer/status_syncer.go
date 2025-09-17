@@ -498,8 +498,9 @@ func (s *AgentGwStatusSyncer) syncGatewayStatus(ctx context.Context, logger *slo
 				setObservedGen(&gw, status)
 
 				if !isGatewayStatusEqual(&gwStatusWithoutAddress, status) {
+					original := gw.DeepCopy()
 					gw.Status = *status
-					if err := s.mgr.GetClient().Status().Patch(ctx, &gw, client.Merge); err != nil {
+					if err := s.mgr.GetClient().Status().Patch(ctx, &gw, client.MergeFrom(original)); err != nil {
 						logger.Error("error patching gateway status", logKeyError, err, logKeyGateway, gwnn.String())
 						return err
 					}

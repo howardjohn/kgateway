@@ -7,6 +7,7 @@ import (
 
 	xdsserver "github.com/envoyproxy/go-control-plane/pkg/server/v3"
 	"github.com/go-logr/logr"
+	"github.com/kgateway-dev/kgateway/v2/internal/kgateway/agentgatewaysyncer"
 	istiokube "istio.io/istio/pkg/kube"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/kube/kubetypes"
@@ -186,6 +187,7 @@ func New(opts ...func(*setup)) (*setup, error) {
 		s.restConfig = ctrl.GetConfigOrDie()
 	}
 
+	//s.restConfig.
 	if s.ctrlMgrOptionsInitFunc == nil {
 		s.ctrlMgrOptionsInitFunc = func(ctx context.Context) *ctrl.Options {
 			return &ctrl.Options{
@@ -197,8 +199,9 @@ func New(opts ...func(*setup)) (*setup, error) {
 				Metrics: metricsserver.Options{
 					BindAddress: ":9092",
 				},
-				LeaderElection:   !s.globalSettings.DisableLeaderElection,
-				LeaderElectionID: s.leaderElectionID,
+				LeaderElectionNamespace: "kgateway-system",
+				LeaderElection:          !s.globalSettings.DisableLeaderElection,
+				LeaderElectionID:        s.leaderElectionID,
 			}
 		}
 	}
@@ -285,7 +288,10 @@ func (s *setup) Start(ctx context.Context) error {
 		slog.Error("error creating agw common collections", "error", err)
 		return err
 	}
-
+	l, err := net.Listen("tcp", "127.0.0.1:11122")
+	if err != nil {
+		return err
+	}
 	for _, mgrCfgFunc := range s.extraManagerConfig {
 		err := mgrCfgFunc(ctx, mgr, commoncol.DiscoveryNamespacesFilter)
 		if err != nil {
@@ -293,9 +299,14 @@ func (s *setup) Start(ctx context.Context) error {
 		}
 	}
 
-	BuildKgatewayWithConfig(
+	agw, err := BuildKgatewayWithConfig(
 		ctx, mgr, s.gatewayControllerName, s.gatewayClassName, s.waypointClassName,
 		s.agentGatewayClassName, s.additionalGatewayClasses, setupOpts, s.restConfig, istioClient, commoncol, agwCollections, uccBuilder, s.extraPlugins, s.extraAgentgatewayPlugins, s.extraGatewayParameters)
+	if err != nil {
+		return err
+	}
+
+	NewAltControlPlane(ctx, l, agw.Registrations...)
 
 	slog.Info("starting admin server")
 	go admin.RunAdminServer(ctx, setupOpts)
@@ -309,24 +320,14 @@ func newXDSListener(ip string, port uint32) (net.Listener, error) {
 	return net.Listen(bindAddr.Network(), bindAddr.String())
 }
 
-func BuildKgatewayWithConfig(
-	ctx context.Context,
-	mgr manager.Manager,
-	gatewayControllerName string,
-	gatewayClassName string,
-	waypointClassName string,
-	agentGatewayClassName string,
-	additionalGatewayClasses map[string]*deployer.GatewayClassInfo,
+func BuildKgatewayWithConfig(ctx context.Context, mgr manager.Manager, gatewayControllerName string, gatewayClassName string, waypointClassName string, agentGatewayClassName string, additionalGatewayClasses map[string]*deployer.GatewayClassInfo,
 	setupOpts *controller.SetupOpts,
 	restConfig *rest.Config,
 	kubeClient istiokube.Client,
 	commonCollections *collections.CommonCollections,
 	agwCollections *agentgatewayplugins.AgwCollections,
 	uccBuilder krtcollections.UniquelyConnectedClientsBulider,
-	extraPlugins func(ctx context.Context, commoncol *common.CommonCollections, mergeSettingsJSON string) []sdk.Plugin,
-	extraAgentgatewayPlugins func(ctx context.Context, agw *agentgatewayplugins.AgwCollections) []agentgatewayplugins.AgentgatewayPlugin,
-	extraGatewayParameters func(cli client.Client, inputs *deployer.Inputs) []deployer.ExtraGatewayParameters,
-) error {
+	extraPlugins func(ctx context.Context, commoncol *common.CommonCollections, mergeSettingsJSON string) []sdk.Plugin, extraAgentgatewayPlugins func(ctx context.Context, agw *agentgatewayplugins.AgwCollections) []agentgatewayplugins.AgentgatewayPlugin, extraGatewayParameters func(cli client.Client, inputs *deployer.Inputs) []deployer.ExtraGatewayParameters) (*agentgatewaysyncer.AgentGwSyncer, error) {
 	slog.Info("creating krt collections")
 	krtOpts := krtutil.NewKrtOptions(ctx.Done(), setupOpts.KrtDebugger)
 
@@ -361,7 +362,7 @@ func BuildKgatewayWithConfig(
 	})
 	if err != nil {
 		slog.Error("failed initializing controller: ", "error", err)
-		return err
+		return nil, err
 	}
 
 	slog.Info("waiting for cache sync")

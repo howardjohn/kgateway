@@ -140,7 +140,7 @@ type Settings struct {
 	DiscoveryNamespaceSelectors string `split_words:"true" default:"[]"`
 
 	// EnableAgentGateway enables kgateway to send config to the agentgateway
-	EnableAgentGateway bool `split_words:"true" default:"false"`
+	EnableAgentGateway bool `split_words:"true" default:"true"`
 
 	// WeightedRoutePrecedence enables routes with a larger weight to take precedence over routes with a smaller weight.
 	// If two routes have the same weight, Gateway API route precedence rules apply.
