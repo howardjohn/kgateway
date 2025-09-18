@@ -13,6 +13,7 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
+	krtinternal "github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils/krtutil"
 	"go.uber.org/atomic"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc/codes"
@@ -30,7 +31,6 @@ import (
 	istiolog "istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/maps"
 	"istio.io/istio/pkg/slices"
-	"istio.io/istio/pkg/spiffe"
 	_ "istio.io/istio/pkg/util/protomarshal" // Ensure we get the more efficient vtproto gRPC encoder
 	"istio.io/istio/pkg/util/sets"
 	"istio.io/istio/pkg/xds"
@@ -61,7 +61,7 @@ func (d DiscoveryResource) ResourceName() string {
 	return d.Name
 }
 
-func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T]) Registration {
+func Index[K comparable, T IntoProto[TT], TT proto.Message](collection krt.Collection[T], extract func(o T) K, krtopts krtinternal.KrtOptions, ) Registration {
 	return func(m map[string]krt.Collection[DiscoveryResource], pushChannel chan *PushRequest) func(stop <-chan struct{}) {
 		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
 			return &DiscoveryResource{Resource: &discovery.Resource{
@@ -72,7 +72,42 @@ func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T])
 				CacheControl: nil,
 				Metadata:     nil,
 			}}
-		})
+		}, krtopts.ToOptions("")...)
+
+		t := TypeName[TT]()
+		m[t] = nc
+		return func(stop <-chan struct{}) {
+			if !nc.WaitUntilSynced(stop) {
+				return
+			}
+			nc.RegisterBatch(func(o []krt.Event[DiscoveryResource]) {
+				un := make(sets.String, len(o))
+				for _, oo := range o {
+					un.Insert(oo.Latest().Name)
+				}
+				pr := PushRequest{
+					ConfigsUpdated: map[TypeUrl]sets.String{
+						TypeUrl(t): un,
+					},
+				}
+				pushChannel <- &pr
+			}, true)
+		}
+	}
+}
+
+func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], krtopts krtinternal.KrtOptions, ) Registration {
+	return func(m map[string]krt.Collection[DiscoveryResource], pushChannel chan *PushRequest) func(stop <-chan struct{}) {
+		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
+			return &DiscoveryResource{Resource: &discovery.Resource{
+				Name:         krt.GetKey(i),
+				Version:      "",
+				Resource:     protoconv.MessageToAny(i.IntoProto()),
+				Ttl:          nil,
+				CacheControl: nil,
+				Metadata:     nil,
+			}}
+		}, krtopts.ToOptions("")...)
 
 		t := TypeName[TT]()
 		m[t] = nc
@@ -186,20 +221,8 @@ type Proxy struct {
 	// namespace <podName.namespace>.
 	ID string
 
-	// VerifiedIdentity determines whether a proxy had its identity verified. This
-	// generally occurs by JWT or mTLS authentication. This can be false when
-	// connecting over plaintext. If this is set to true, we can verify the proxy has
-	// access to ConfigNamespace namespace. However, other options such as node type
-	// are not part of an Istio identity and thus are not verified.
-	VerifiedIdentity *spiffe.Identity
-
 	// WatchedResources contains the list of watched resources for the proxy, keyed by the DiscoveryRequest TypeUrl.
 	WatchedResources map[string]*model.WatchedResource
-
-	// LastPushTime records the time of the last push. This is used in conjunction with
-	// LastPushContext; the XDS cache depends on knowing the time of the PushContext to determine if a
-	// key is stale or not.
-	LastPushTime time.Time
 }
 
 type Connection struct {
@@ -217,8 +240,7 @@ type Connection struct {
 
 	deltaReqChan chan *discovery.DeltaDiscoveryRequest
 
-	s   *DiscoveryServer
-	ids []string
+	s *DiscoveryServer
 }
 
 // StreamAggregatedResources implements the ADS interface.
@@ -443,10 +465,6 @@ func (s *DiscoveryServer) processDeltaRequest(req *discovery.DeltaDiscoveryReque
 
 	subs, _, _ := deltaWatchedResources(nil, req)
 	request := &PushRequest{
-		// The usage of LastPushTime (rather than time.Now()), is critical here for correctness; This time
-		// is used by the XDS cache to determine if a entry is stale. If we use Now() with an old push context,
-		// we may end up overriding active cache entries with stale ones.
-		Start: con.proxy.LastPushTime,
 		IsFromRequest: true,
 		Delta: model.ResourceDelta{
 			// Record sub/unsub, but drop synthetic wildcard info
@@ -587,6 +605,7 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 		return nil
 	}
 	pushVersion := req.PushVersion
+	con.node
 	res, deletedRes, logdata, err := gen.GenerateDeltas(req, w)
 	if err != nil || (res == nil && deletedRes == nil) {
 		return err
@@ -1039,7 +1058,8 @@ func connectionID(node string) string {
 }
 
 type CollectionGenerator struct {
-	Col krt.Collection[DiscoveryResource]
+	Col   krt.Collection[DiscoveryResource]
+	Index krt.i
 }
 
 // GenerateDeltas computes Workload resources. This is design to be highly optimized to delta updates,
@@ -1101,10 +1121,6 @@ type PushRequest struct {
 
 	IsFromRequest bool
 
-	// Start represents the time a push was started. This represents the time of adding to the PushQueue.
-	// Note that this does not include time spent debouncing.
-	Start time.Time
-
 	// PushVersion represent the version of the push
 	PushVersion string
 
@@ -1162,10 +1178,7 @@ func (pr *PushRequest) CopyMerge(other *PushRequest) *PushRequest {
 		return pr
 	}
 
-	merged := &PushRequest{
-		// Keep the first (older) start time
-		Start: pr.Start,
-	}
+	merged := &PushRequest{}
 
 	if pr.ConfigsUpdated == nil && other.ConfigsUpdated == nil {
 		merged.ConfigsUpdated = nil

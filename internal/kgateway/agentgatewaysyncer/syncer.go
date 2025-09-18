@@ -249,7 +249,6 @@ func (s *AgentGwSyncer) buildADPResources(
 		Backends:        s.agwCollections.Backends,
 		DirectResponses: s.agwCollections.DirectResponses,
 	}
-	_ = routeInputs
 	adpRoutes := ADPRouteCollection(s.agwCollections.HTTPRoutes, s.agwCollections.GRPCRoutes, s.agwCollections.TCPRoutes, s.agwCollections.TLSRoutes, routeInputs, krtopts)
 	if s.agwPlugins.AddResourceExtension != nil && s.agwPlugins.AddResourceExtension.Routes != nil {
 		adpRoutes = krt.JoinCollection([]krt.Collection[agwir.ADPResource]{adpRoutes, s.agwPlugins.AddResourceExtension.Routes})
@@ -440,13 +439,19 @@ func (s *AgentGwSyncer) buildXDSCollection(
 	krtopts krtinternal.KrtOptions,
 ) {
 	// Create an index on adpResources by Gateway to avoid fetching all resources
-	adpResourcesByGateway := krt.NewIndex(adpResources, "gateway", func(resource agwir.ADPResource) []types.NamespacedName {
+	adpResourcesByGateway2 := krt.NewIndex(adpResources, "gateway", func(resource agwir.ADPResource) []types.NamespacedName {
 		return []types.NamespacedName{resource.Gateway}
 	})
-	_ = adpResourcesByGateway
+	adpResourcesByGateway := func(resource agwir.ADPResource) types.NamespacedName {
+		return resource.Gateway
+	}
+	extractFromNode
+	_ = adpResourcesByGateway2
 	// TODO: actually keep it per-gateway
-	s.Registrations = append(s.Registrations, krtxds.Collection[Address, *api.Address](xdsAddresses))
-	s.Registrations = append(s.Registrations, krtxds.Collection[agwir.ADPResource, *api.Resource](adpResources))
+	krtopts.ToOptions("")
+	s.Registrations = append(s.Registrations, krtxds.Collection[Address, *api.Address](xdsAddresses, krtopts))
+	s.Registrations = append(s.Registrations, krtxds.Collection[agwir.ADPResource, *api.Resource](adpResources, krtopts))
+	s.Registrations = append(s.Registrations, krtxds.Index[types.NamespacedName, agwir.ADPResource, *api.Resource](adpResources, adpResourcesByGateway, krtopts))
 
 	//s.xDS = krt.NewCollection(adpResources, func(kctx krt.HandlerContext, obj ADPResource) *agentGwXdsResources {
 	//	gwNamespacedName := obj.Gateway
