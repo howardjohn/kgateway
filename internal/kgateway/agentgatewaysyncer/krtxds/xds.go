@@ -14,6 +14,7 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	krtinternal "github.com/kgateway-dev/kgateway/v2/internal/kgateway/utils/krtutil"
+	kgwxds "github.com/kgateway-dev/kgateway/v2/internal/kgateway/xds"
 	"go.uber.org/atomic"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc/codes"
@@ -30,15 +31,17 @@ import (
 	"istio.io/istio/pkg/kube/krt"
 	istiolog "istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/maps"
+	"istio.io/istio/pkg/ptr"
 	"istio.io/istio/pkg/slices"
 	_ "istio.io/istio/pkg/util/protomarshal" // Ensure we get the more efficient vtproto gRPC encoder
 	"istio.io/istio/pkg/util/sets"
 	"istio.io/istio/pkg/xds"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var log = istiolog.RegisterScope("krtxds", "delta xds debugging")
 
-type Registration func(map[string]krt.Collection[DiscoveryResource], chan *PushRequest) func(stop <-chan struct{})
+type Registration func(map[string]CollectionGenerator, chan *PushRequest) func(stop <-chan struct{})
 
 func TypeName[T proto.Message]() string {
 	ft := new(T)
@@ -49,33 +52,59 @@ type IntoProto[T proto.Message] interface {
 	IntoProto() T
 }
 
+type IntoResourceName interface {
+	XDSResourceName() string
+}
+
 type DiscoveryResource struct {
 	*discovery.Resource
+	ForGateway *types.NamespacedName
 }
 
 func (d DiscoveryResource) Equals(other DiscoveryResource) bool {
-	return protoconv.Equals(d.Resource, other.Resource)
+	return protoconv.Equals(d.Resource, other.Resource) && ptr.Equal(d.ForGateway, other.ForGateway)
 }
 
 func (d DiscoveryResource) ResourceName() string {
+	if d.ForGateway != nil {
+		return d.ForGateway.String() + "/" + d.Name
+	}
 	return d.Name
 }
 
-func Index[K comparable, T IntoProto[TT], TT proto.Message](collection krt.Collection[T], extract func(o T) K, krtopts krtinternal.KrtOptions, ) Registration {
-	return func(m map[string]krt.Collection[DiscoveryResource], pushChannel chan *PushRequest) func(stop <-chan struct{}) {
+
+func getKey[T any](t T) string {
+	if xx, ok := any(t).(IntoResourceName); ok {
+		return xx.XDSResourceName()
+	}
+	return krt.GetKey(t)
+}
+
+func PerGatewayCollection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], extract func(o T) types.NamespacedName, krtopts krtinternal.KrtOptions) Registration {
+	return func(m map[string]CollectionGenerator, pushChannel chan *PushRequest) func(stop <-chan struct{}) {
 		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
-			return &DiscoveryResource{Resource: &discovery.Resource{
-				Name:         krt.GetKey(i),
-				Version:      "",
-				Resource:     protoconv.MessageToAny(i.IntoProto()),
-				Ttl:          nil,
-				CacheControl: nil,
-				Metadata:     nil,
-			}}
-		}, krtopts.ToOptions("")...)
+			var forGateway *types.NamespacedName
+			if extract != nil {
+				forGateway = ptr.Of(extract(i))
+			}
+			return &DiscoveryResource{
+				Resource: &discovery.Resource{
+					Name:         getKey(i),
+					Version:      "",
+					Resource:     protoconv.MessageToAny(i.IntoProto()),
+					Ttl:          nil,
+					CacheControl: nil,
+					Metadata:     nil,
+				},
+				ForGateway: forGateway,
+			}
+		}, krtopts.ToOptions(fmt.Sprintf("XDS/%s", TypeName[TT]()))...)
 
 		t := TypeName[TT]()
-		m[t] = nc
+		m[t] = CollectionGenerator{
+			PerGateway: extract != nil,
+			Col:        nc,
+		}
 		return func(stop <-chan struct{}) {
 			if !nc.WaitUntilSynced(stop) {
 				return
@@ -96,39 +125,8 @@ func Index[K comparable, T IntoProto[TT], TT proto.Message](collection krt.Colle
 	}
 }
 
-func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], krtopts krtinternal.KrtOptions, ) Registration {
-	return func(m map[string]krt.Collection[DiscoveryResource], pushChannel chan *PushRequest) func(stop <-chan struct{}) {
-		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
-			return &DiscoveryResource{Resource: &discovery.Resource{
-				Name:         krt.GetKey(i),
-				Version:      "",
-				Resource:     protoconv.MessageToAny(i.IntoProto()),
-				Ttl:          nil,
-				CacheControl: nil,
-				Metadata:     nil,
-			}}
-		}, krtopts.ToOptions("")...)
-
-		t := TypeName[TT]()
-		m[t] = nc
-		return func(stop <-chan struct{}) {
-			if !nc.WaitUntilSynced(stop) {
-				return
-			}
-			nc.RegisterBatch(func(o []krt.Event[DiscoveryResource]) {
-				un := make(sets.String, len(o))
-				for _, oo := range o {
-					un.Insert(oo.Latest().Name)
-				}
-				pr := PushRequest{
-					ConfigsUpdated: map[TypeUrl]sets.String{
-						TypeUrl(t): un,
-					},
-				}
-				pushChannel <- &pr
-			}, true)
-		}
-	}
+func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], krtopts krtinternal.KrtOptions) Registration {
+	return PerGatewayCollection(collection, nil, krtopts)
 }
 
 // NewDiscoveryServer creates DiscoveryServer that sources data from Pilot's internal mesh data structures
@@ -147,7 +145,7 @@ func NewDiscoveryServer(debugger *krt.DebugHandler, reg ...Registration) *Discov
 			DebounceAfter: features.DebounceAfter,
 			DebounceMax:   features.DebounceMax,
 		},
-		Collections: make(map[string]krt.Collection[DiscoveryResource]),
+		Collections: make(map[string]CollectionGenerator),
 	}
 
 	//out.pushQueue
@@ -165,7 +163,7 @@ type DiscoveryServer struct {
 	// default generator, or the combination of Generator metadata and TypeUrl to select a
 	// different generator for a type.
 	// Normal istio clients use the default generator - will not be impacted by this.
-	Collections map[string]krt.Collection[DiscoveryResource]
+	Collections map[string]CollectionGenerator
 
 	// concurrentPushLimit is a semaphore that limits the amount of concurrent XDS pushes.
 	concurrentPushLimit chan struct{}
@@ -605,8 +603,8 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 		return nil
 	}
 	pushVersion := req.PushVersion
-	con.node
-	res, deletedRes, logdata, err := gen.GenerateDeltas(req, w)
+	gw := kgwxds.AgentgatewayID(con.node)
+	res, deletedRes, logdata, err := gen.GenerateDeltas(req, w, gw)
 	if err != nil || (res == nil && deletedRes == nil) {
 		return err
 	}
@@ -925,7 +923,6 @@ func (s *DiscoveryServer) Push(req *PushRequest) {
 	log.Infof("XDS: Incremental Pushing ConnectedEndpoints:%d Version:%s",
 		s.adsClientCount(), version)
 
-	req.Start = time.Now()
 	req.PushVersion = version
 	for _, p := range s.AllClients() {
 		s.pushQueue.Enqueue(p, req)
@@ -1035,9 +1032,7 @@ func (s *DiscoveryServer) initProxyMetadata(node *core.Node) (*Proxy, error) {
 	proxy := Proxy{
 		RWMutex:          sync.RWMutex{},
 		ID:               node.Id,
-		VerifiedIdentity: nil,
 		WatchedResources: nil,
-		LastPushTime:     time.Time{},
 	}
 	return &proxy, nil
 }
@@ -1045,7 +1040,7 @@ func (s *DiscoveryServer) initProxyMetadata(node *core.Node) (*Proxy, error) {
 func (s *DiscoveryServer) findGenerator(url string) (CollectionGenerator, bool) {
 	c, f := s.Collections[url]
 	if f {
-		return CollectionGenerator{Col: c}, f
+		return c, f
 	}
 	return CollectionGenerator{}, false
 }
@@ -1058,8 +1053,8 @@ func connectionID(node string) string {
 }
 
 type CollectionGenerator struct {
-	Col   krt.Collection[DiscoveryResource]
-	Index krt.i
+	PerGateway bool
+	Col krt.Collection[DiscoveryResource]
 }
 
 // GenerateDeltas computes Workload resources. This is design to be highly optimized to delta updates,
@@ -1069,16 +1064,17 @@ type CollectionGenerator struct {
 // Incoming requests may be for VIP or Pod IP addresses. However, all responses are Workload resources, which are pod based.
 // This means subscribing to a VIP may end up pushing many resources of different name than the request.
 // On-demand clients are expected to handle this (for wildcard, this is not applicable, as they don't specify any resources at all).
-func (e CollectionGenerator) GenerateDeltas(
-	req *PushRequest,
-	w *model.WatchedResource,
-) (model.Resources, model.DeletedResources, model.XdsLogDetails, error) {
+func (e CollectionGenerator) GenerateDeltas(req *PushRequest, w *model.WatchedResource, gw types.NamespacedName) (model.Resources, model.DeletedResources, model.XdsLogDetails, error) {
 	var res []*discovery.Resource
 	var deletes []string
+	log := log.WithLabels("gw", gw, "ty", w.TypeUrl)
 	if req.IsRequest() {
 		// Full update, expect everything
-		res = slices.Map(e.Col.List(), func(e DiscoveryResource) *discovery.Resource {
-			return e.Resource
+		res = slices.MapFilter(e.Col.List(), func(e DiscoveryResource) **discovery.Resource {
+			if e.ForGateway != nil && *e.ForGateway != gw {
+				return nil
+			}
+			return &e.Resource
 		})
 		toDeleted := w.ResourceNames.Copy()
 		for _, r := range res {
@@ -1087,10 +1083,14 @@ func (e CollectionGenerator) GenerateDeltas(
 		deletes = sets.SortedList(toDeleted)
 	} else {
 		k := req.ConfigsUpdated[TypeUrl(w.TypeUrl)]
+		log.Errorf("howardjohn: changes %+v", k)
 
 		res = make([]*discovery.Resource, 0, len(k))
 		for k := range k {
-			v := e.Col.GetKey(k)
+			v := e.Col.GetKey(gw.String() + "/" + k)
+			if v != nil && v.ForGateway != nil && *v.ForGateway != gw {
+				v = nil
+			}
 			if v == nil {
 				deletes = append(deletes, k)
 			} else {

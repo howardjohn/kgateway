@@ -110,6 +110,10 @@ func (g ADPResource) ResourceName() string {
 	return g.Gateway.String() + "/" + GetADPResourceName(g.Resource)
 }
 
+func (g ADPResource) XDSResourceName() string {
+		return GetADPResourceName(g.Resource)
+}
+
 func (g ADPResource) Equals(other ADPResource) bool {
 	return protoconv.Equals(g.Resource, other.Resource) && g.Gateway == other.Gateway
 }
