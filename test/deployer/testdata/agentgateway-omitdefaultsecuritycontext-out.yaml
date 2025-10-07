@@ -123,6 +123,10 @@ spec:
             - -f
             - /config/config.yaml
           env:
+            - name: TERMINATION_GRACE_PERIOD_SECONDS
+              value: "60"
+            - name: CONNECTION_MIN_TERMINATION_DEADLINE
+              value: "10s"
             - name: NODE_NAME
               valueFrom:
                 fieldRef:

@@ -101,6 +101,12 @@ spec:
             - -f
             - /config/config.yaml
           env:
+          {{- with $gateway.terminationGracePeriodSeconds }}
+            - name: TERMINATION_GRACE_PERIOD_SECONDS
+              value: "{{.}}"
+          {{- end }}
+            - name: CONNECTION_MIN_TERMINATION_DEADLINE
+              value: "{{ $gateway.gracefulShutdown.sleepTimeSeconds | default "5" }}s"
             - name: NODE_NAME
               valueFrom:
                 fieldRef:
