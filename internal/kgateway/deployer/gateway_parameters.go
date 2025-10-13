@@ -288,7 +288,8 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 		Name:             &gw.Name,
 		GatewayName:      &gw.Name,
 		GatewayNamespace: &gw.Namespace,
-		GatewayClassName: ptr.To(string(gw.Spec.GatewayClassName)), Ports: ports,
+		GatewayClassName: ptr.To(string(gw.Spec.GatewayClassName)),
+		Ports:            ports,
 		Xds: &deployer.HelmXds{
 			// The xds host/port MUST map to the Service definition for the Control Plane
 			// This is the socket address that the Proxy will connect to on startup, to receive xds updates
@@ -305,9 +306,9 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 			Host: &k.inputs.ControlPlane.XdsHost,
 			Port: &k.inputs.ControlPlane.AgwXdsPort,
 			Tls: &deployer.HelmXdsTls{
-			Enabled: ptr.To(k.inputs.ControlPlane.XdsTLS),
-			CaCert:  ptr.To(k.inputs.ControlPlane.XdsTlsCaPath),
-		},
+				Enabled: ptr.To(k.inputs.ControlPlane.XdsTLS),
+				CaCert:  ptr.To(k.inputs.ControlPlane.XdsTlsCaPath),
+			},
 		},
 	}
 	if i := gw.Spec.Infrastructure; i != nil {
@@ -325,7 +326,6 @@ func (k *kGatewayParameters) getValues(gw *api.Gateway, gwParam *v1alpha1.Gatewa
 			return nil, fmt.Errorf("failed to inject xDS CA certificate: %w", err)
 		}
 	}
-
 
 	// if there is no GatewayParameters, return the values as is
 	if gwParam == nil {

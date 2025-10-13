@@ -7,7 +7,10 @@
 {{- $labels := merge (dict
   "kgateway" "kube-gateway"
   "helm.sh/chart" (include "kgateway.chart" .)
-  "app.kubernetes.io/managed-by" .Release.Service) $selectorLabels ($gateway.gatewayLabels | default dict)
+  "app.kubernetes.io/managed-by" .Release.Service
+  "gateway.networking.k8s.io/gateway-class-name" .Values.gateway.gatewayClassName
+  )
+  $selectorLabels ($gateway.gatewayLabels | default dict)
 }}
 {{- $promAnnotations := (dict
   "prometheus.io/path" "/metrics"
