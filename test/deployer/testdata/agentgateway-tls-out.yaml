@@ -126,6 +126,7 @@ spec:
       labels:
         app.kubernetes.io/instance: gw
         app.kubernetes.io/name: gw
+        gateway.networking.k8s.io/gateway-class-name: agentgateway
         gateway.networking.k8s.io/gateway-name: gw
     spec:
       serviceAccountName: gw
