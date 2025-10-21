@@ -45,9 +45,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              A GatewayParametersSpec describes the type of environment/platform in which
-              the proxy will be provisioned.
+            description: I didn't touch this but we need to change ~everything.
             properties:
               kube:
                 description: The proxy will be deployed on Kubernetes.

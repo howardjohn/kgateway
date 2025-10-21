@@ -5,20 +5,18 @@ package v1alpha1
 import (
 	http "net/http"
 
-	rest "k8s.io/client-go/rest"
-
 	apiv1alpha1 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
 	scheme "github.com/kgateway-dev/kgateway/v2/pkg/client/clientset/versioned/scheme"
+	rest "k8s.io/client-go/rest"
 )
 
 type GatewayV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BackendsGetter
 	BackendConfigPoliciesGetter
-	DirectResponsesGetter
+	FrontendPoliciesGetter
 	GatewayExtensionsGetter
 	GatewayParametersGetter
-	HTTPListenerPoliciesGetter
 	TrafficPoliciesGetter
 }
 
@@ -35,8 +33,8 @@ func (c *GatewayV1alpha1Client) BackendConfigPolicies(namespace string) BackendC
 	return newBackendConfigPolicies(c, namespace)
 }
 
-func (c *GatewayV1alpha1Client) DirectResponses(namespace string) DirectResponseInterface {
-	return newDirectResponses(c, namespace)
+func (c *GatewayV1alpha1Client) FrontendPolicies(namespace string) FrontendPolicyInterface {
+	return newFrontendPolicies(c, namespace)
 }
 
 func (c *GatewayV1alpha1Client) GatewayExtensions(namespace string) GatewayExtensionInterface {
@@ -45,10 +43,6 @@ func (c *GatewayV1alpha1Client) GatewayExtensions(namespace string) GatewayExten
 
 func (c *GatewayV1alpha1Client) GatewayParameters(namespace string) GatewayParametersInterface {
 	return newGatewayParameters(c, namespace)
-}
-
-func (c *GatewayV1alpha1Client) HTTPListenerPolicies(namespace string) HTTPListenerPolicyInterface {
-	return newHTTPListenerPolicies(c, namespace)
 }
 
 func (c *GatewayV1alpha1Client) TrafficPolicies(namespace string) TrafficPolicyInterface {

@@ -9,35 +9,17 @@ import (
 // VertexAIConfigApplyConfiguration represents a declarative configuration of the VertexAIConfig type for use
 // with apply.
 type VertexAIConfigApplyConfiguration struct {
-	AuthToken  *SingleAuthTokenApplyConfiguration `json:"authToken,omitempty"`
-	Model      *string                            `json:"model,omitempty"`
-	ApiVersion *string                            `json:"apiVersion,omitempty"`
-	ProjectId  *string                            `json:"projectId,omitempty"`
-	Location   *string                            `json:"location,omitempty"`
-	ModelPath  *string                            `json:"modelPath,omitempty"`
-	Publisher  *apiv1alpha1.Publisher             `json:"publisher,omitempty"`
+	ApiVersion *string                `json:"apiVersion,omitempty"`
+	ProjectId  *string                `json:"projectId,omitempty"`
+	Location   *string                `json:"location,omitempty"`
+	ModelPath  *string                `json:"modelPath,omitempty"`
+	Publisher  *apiv1alpha1.Publisher `json:"publisher,omitempty"`
 }
 
 // VertexAIConfigApplyConfiguration constructs a declarative configuration of the VertexAIConfig type for use with
 // apply.
 func VertexAIConfig() *VertexAIConfigApplyConfiguration {
 	return &VertexAIConfigApplyConfiguration{}
-}
-
-// WithAuthToken sets the AuthToken field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AuthToken field is set to the value of the last call.
-func (b *VertexAIConfigApplyConfiguration) WithAuthToken(value *SingleAuthTokenApplyConfiguration) *VertexAIConfigApplyConfiguration {
-	b.AuthToken = value
-	return b
-}
-
-// WithModel sets the Model field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Model field is set to the value of the last call.
-func (b *VertexAIConfigApplyConfiguration) WithModel(value string) *VertexAIConfigApplyConfiguration {
-	b.Model = &value
-	return b
 }
 
 // WithApiVersion sets the ApiVersion field in the declarative configuration to the given value

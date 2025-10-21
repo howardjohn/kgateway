@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kgateway-{{ .Release.Namespace }}
+  name: kgateway
 rules:
 - apiGroups:
   - ""
@@ -92,9 +92,9 @@ rules:
 - apiGroups:
   - gateway.kgateway.dev
   resources:
+  - agentgatwaypolicies
   - backendconfigpolicies
   - backends
-  - directresponses
   - gatewayextensions
   - gatewayparameters
   - httplistenerpolicies
@@ -106,9 +106,9 @@ rules:
 - apiGroups:
   - gateway.kgateway.dev
   resources:
+  - agentgatwaypolicies/status
   - backendconfigpolicies/status
   - backends/status
-  - directresponses/status
   - gatewayextensions/status
   - gatewayparameters/status
   - httplistenerpolicies/status

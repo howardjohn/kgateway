@@ -53,510 +53,74 @@ spec:
           spec:
             description: |-
               TrafficPolicySpec defines the desired state of a traffic policy.
-              Note: Backend attachment is only supported for agentgateway.
+
+              TrafficPolicy can apply at two layers, based on the `phase` field:
+              * After a route is selected, but before a backend is selected.
+              * After a listener is selected, but before a route is selected.
+
+              In either case, TrafficPolicy can target a Gateway, Listener, Route, or Route Rule.
+              If multiple policies exist for a given request, they are merged on a per-field basis, with precedence to the more precise policies (Route Rule > Gateway).
             properties:
-              ai:
-                description: AI is used to configure AI-based policies for the policy.
-                properties:
-                  defaults:
-                    description: |-
-                      Provide defaults to merge with user input fields.
-                      Defaults do _not_ override the user input fields, unless you explicitly set `override` to `true`.
-                    items:
-                      description: |-
-                        FieldDefault provides default values for specific fields in the JSON request body sent to the LLM provider.
-                        These defaults are merged with the user-provided request to ensure missing fields are populated.
-
-                        User input fields here refer to the fields in the JSON request body that a client sends when making a request to the LLM provider.
-                        Defaults set here do _not_ override those user-provided values unless you explicitly set `override` to `true`.
-
-                        Example: Setting a default system field for Anthropic, which does not support system role messages:
-                        ```yaml
-                        defaults:
-                          - field: "system"
-                            value: "answer all questions in French"
-
-                        ```
-
-                        Example: Setting a default temperature and overriding `max_tokens`:
-                        ```yaml
-                        defaults:
-                          - field: "temperature"
-                            value: "0.5"
-                          - field: "max_tokens"
-                            value: "100"
-                            override: true
-
-                        ```
-
-                        Example: Setting custom lists fields:
-                        ```yaml
-                        defaults:
-                          - field: "custom_integer_list"
-                            value: "[1,2,3]"
-                          - field: "custom_string_list"
-                            value: '["one","two","three"]'
-                            override: true
-
-                        ```
-
-                        Note: The `field` values correspond to keys in the JSON request body, not fields in this CRD.
+              accessLog:
+                description: AccessLoggingConfig contains access logging configuration
+                items:
+                  description: AccessLog represents the top-level access log configuration.
+                  properties:
+                    fields:
                       properties:
-                        field:
-                          description: The name of the field.
-                          minLength: 1
-                          type: string
-                        override:
-                          default: false
-                          description: |-
-                            Whether to override the field's value if it already exists.
-                            Defaults to false.
-                          type: boolean
-                        value:
-                          description: The field default value, which can be any JSON
-                            Data Type.
-                          minLength: 1
-                          type: string
-                      required:
-                      - field
-                      - value
+                        add:
+                          additionalProperties:
+                            minLength: 1
+                            type: string
+                          type: object
+                        remove:
+                          items:
+                            type: string
+                          type: array
                       type: object
-                    type: array
-                  modelAliases:
-                    additionalProperties:
+                    filter:
+                      description: Filter access logs configuration
+                      minLength: 1
                       type: string
+                  type: object
+                maxItems: 16
+                type: array
+              authorization:
+                description: |-
+                  RBAC specifies the role-based access control configuration for the policy.
+                  This defines the rules for authorization based on roles and permissions.
+                  With an Envoy-based Gateway, RBAC policies applied at different attachment points in the configuration
+                  hierarchy are not cumulative, and only the most specific policy is enforced. In Envoy, this means an RBAC policy
+                  attached to a route will override any RBAC policies applied to the gateway or listener. In contrast, an
+                  Agentgateway-based Gateway supports cumulative RBAC policies across different attachment points, such that
+                  an RBAC policy attached to a route augments policies applied to the gateway or listener without overriding them.
+                properties:
+                  action:
+                    default: Allow
                     description: |-
-                      ModelAliases maps friendly model names to actual provider model names.
-                      Example: {"fast": "gpt-3.5-turbo", "smart": "gpt-4-turbo"}
-                      Note: This field is only applicable when using the agentgateway data plane.
-                    type: object
-                  promptEnrichment:
-                    description: |-
-                      Enrich requests sent to the LLM provider by appending and prepending system prompts.
-                      This can be configured only for LLM providers that use the `CHAT` or `CHAT_STREAMING` API route type.
-                    properties:
-                      append:
-                        description: A list of messages to be appended to the prompt
-                          sent by the client.
-                        items:
-                          description: An entry for a message to prepend or append
-                            to each prompt.
-                          properties:
-                            content:
-                              description: String content of the message.
-                              type: string
-                            role:
-                              description: |-
-                                Role of the message. The available roles depend on the backend
-                                LLM provider model, such as `SYSTEM` or `USER` in the OpenAI API.
-                              type: string
-                          required:
-                          - content
-                          - role
-                          type: object
-                        type: array
-                      prepend:
-                        description: A list of messages to be prepended to the prompt
-                          sent by the client.
-                        items:
-                          description: An entry for a message to prepend or append
-                            to each prompt.
-                          properties:
-                            content:
-                              description: String content of the message.
-                              type: string
-                            role:
-                              description: |-
-                                Role of the message. The available roles depend on the backend
-                                LLM provider model, such as `SYSTEM` or `USER` in the OpenAI API.
-                              type: string
-                          required:
-                          - content
-                          - role
-                          type: object
-                        type: array
-                    type: object
-                  promptGuard:
-                    description: |-
-                      Set up prompt guards to block unwanted requests to the LLM provider and mask sensitive data.
-                      Prompt guards can be used to reject requests based on the content of the prompt, as well as
-                      mask responses based on the content of the response.
-                    properties:
-                      request:
-                        description: Prompt guards to apply to requests sent by the
-                          client.
-                        properties:
-                          customResponse:
-                            description: |-
-                              A custom response message to return to the client. If not specified, defaults to
-                              "The request was rejected due to inappropriate content".
-                            properties:
-                              message:
-                                default: The request was rejected due to inappropriate
-                                  content
-                                description: |-
-                                  A custom response message to return to the client. If not specified, defaults to
-                                  "The request was rejected due to inappropriate content".
-                                type: string
-                              statusCode:
-                                default: 403
-                                description: The status code to return to the client.
-                                  Defaults to 403.
-                                format: int32
-                                maximum: 599
-                                minimum: 200
-                                type: integer
-                            type: object
-                          moderation:
-                            description: |-
-                              Pass prompt data through an external moderation model endpoint,
-                              which compares the request prompt input to predefined content rules.
-                            properties:
-                              openAIModeration:
-                                description: |-
-                                  Pass prompt data through an external moderation model endpoint,
-                                  which compares the request prompt input to predefined content rules.
-                                  Configure an OpenAI moderation endpoint.
-                                properties:
-                                  authToken:
-                                    description: |-
-                                      The authorization token that the AI gateway uses to access the OpenAI API.
-                                      This token is automatically sent in the `Authorization` header of the
-                                      request and prefixed with `Bearer`.
-                                    properties:
-                                      inline:
-                                        description: |-
-                                          Provide the token directly in the configuration for the Backend.
-                                          This option is the least secure. Only use this option for quick tests such as trying out AI Gateway.
-                                        type: string
-                                      kind:
-                                        description: |-
-                                          Kind specifies which type of authorization token is being used.
-                                          Must be one of: "Inline", "SecretRef", "Passthrough".
-                                        enum:
-                                        - Inline
-                                        - SecretRef
-                                        - Passthrough
-                                        type: string
-                                      secretRef:
-                                        description: |-
-                                          Store the API key in a Kubernetes secret in the same namespace as the Backend.
-                                          Then, refer to the secret in the Backend configuration. This option is more secure than an inline token,
-                                          because the API key is encoded and you can restrict access to secrets through RBAC rules.
-                                          You might use this option in proofs of concept, controlled development and staging environments,
-                                          or well-controlled prod environments that use secrets.
-                                        properties:
-                                          name:
-                                            default: ""
-                                            description: |-
-                                              Name of the referent.
-                                              This field is effectively required, but due to backwards compatibility is
-                                              allowed to be empty. Instances of this type with an empty value here are
-                                              almost certainly wrong.
-                                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                            type: string
-                                        type: object
-                                        x-kubernetes-map-type: atomic
-                                    required:
-                                    - kind
-                                    type: object
-                                    x-kubernetes-validations:
-                                    - message: at most one of the fields in [inline
-                                        secretRef] may be set
-                                      rule: '[has(self.inline),has(self.secretRef)].filter(x,x==true).size()
-                                        <= 1'
-                                  model:
-                                    description: |-
-                                      Optional: Override the model name, such as `gpt-4o-mini`.
-                                      If unset, the model name is taken from the request.
-                                      This setting can be useful when setting up model failover within the same LLM provider.
-                                    type: string
-                                required:
-                                - authToken
-                                type: object
-                            type: object
-                          regex:
-                            description: Regular expression (regex) matching for prompt
-                              guards and data masking.
-                            properties:
-                              action:
-                                default: MASK
-                                description: |-
-                                  The action to take if a regex pattern is matched in a request or response.
-                                  This setting applies only to request matches. PromptguardResponse matches are always masked by default.
-                                  Defaults to `MASK`.
-                                type: string
-                              builtins:
-                                description: |-
-                                  A list of built-in regex patterns to match against the request or response.
-                                  Matches and built-ins are additive.
-                                items:
-                                  description: |-
-                                    BuiltIn regex patterns for specific types of strings in prompts.
-                                    For example, if you specify `CREDIT_CARD`, any credit card numbers
-                                    in the request or response are matched.
-                                  enum:
-                                  - SSN
-                                  - CREDIT_CARD
-                                  - PHONE_NUMBER
-                                  - EMAIL
-                                  type: string
-                                type: array
-                              matches:
-                                description: |-
-                                  A list of regex patterns to match against the request or response.
-                                  Matches and built-ins are additive.
-                                items:
-                                  description: RegexMatch configures the regular expression
-                                    (regex) matching for prompt guards and data masking.
-                                  properties:
-                                    name:
-                                      description: An optional name for this match,
-                                        which can be used for debugging purposes.
-                                      type: string
-                                    pattern:
-                                      description: The regex pattern to match against
-                                        the request or response.
-                                      type: string
-                                  type: object
-                                type: array
-                            type: object
-                          webhook:
-                            description: Configure a webhook to forward requests to
-                              for prompt guarding.
-                            properties:
-                              forwardHeaderMatches:
-                                description: |-
-                                  ForwardHeaderMatches defines a list of HTTP header matches that will be
-                                  used to select the headers to forward to the webhook.
-                                  Request headers are used when forwarding requests and response headers
-                                  are used when forwarding responses.
-                                  By default, no headers are forwarded.
-                                items:
-                                  description: |-
-                                    HTTPHeaderMatch describes how to select a HTTP route by matching HTTP request
-                                    headers.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        Name is the name of the HTTP Header to be matched. Name matching MUST be
-                                        case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
-
-                                        If multiple entries specify equivalent header names, only the first
-                                        entry with an equivalent name MUST be considered for a match. Subsequent
-                                        entries with an equivalent header name MUST be ignored. Due to the
-                                        case-insensitivity of header names, "foo" and "Foo" are considered
-                                        equivalent.
-
-                                        When a header is repeated in an HTTP request, it is
-                                        implementation-specific behavior as to how this is represented.
-                                        Generally, proxies should follow the guidance from the RFC:
-                                        https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2.2 regarding
-                                        processing a repeated header, with special handling for "Set-Cookie".
-                                      maxLength: 256
-                                      minLength: 1
-                                      pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
-                                      type: string
-                                    type:
-                                      default: Exact
-                                      description: |-
-                                        Type specifies how to match against the value of the header.
-
-                                        Support: Core (Exact)
-
-                                        Support: Implementation-specific (RegularExpression)
-
-                                        Since RegularExpression HeaderMatchType has implementation-specific
-                                        conformance, implementations can support POSIX, PCRE or any other dialects
-                                        of regular expressions. Please read the implementation's documentation to
-                                        determine the supported dialect.
-                                      enum:
-                                      - Exact
-                                      - RegularExpression
-                                      type: string
-                                    value:
-                                      description: Value is the value of HTTP Header
-                                        to be matched.
-                                      maxLength: 4096
-                                      minLength: 1
-                                      type: string
-                                  required:
-                                  - name
-                                  - value
-                                  type: object
-                                type: array
-                              host:
-                                description: "Host to send the traffic to.\nNote:
-                                  TLS is not currently supported for webhook.\nExample:\n```yaml\nhost:\n
-                                  \ host: example.com  #The host name of the webhook
-                                  endpoint.\n  port: 443 \t        #The port number
-                                  on which the webhook is listening.\n```"
-                                properties:
-                                  host:
-                                    description: Host is the host name to use for
-                                      the backend.
-                                    minLength: 1
-                                    type: string
-                                  port:
-                                    description: Port is the port to use for the backend.
-                                    format: int32
-                                    type: integer
-                                required:
-                                - host
-                                - port
-                                type: object
-                            required:
-                            - host
-                            type: object
-                        type: object
-                      response:
-                        description: Prompt guards to apply to responses returned
-                          by the LLM provider.
-                        properties:
-                          regex:
-                            description: Regular expression (regex) matching for prompt
-                              guards and data masking.
-                            properties:
-                              action:
-                                default: MASK
-                                description: |-
-                                  The action to take if a regex pattern is matched in a request or response.
-                                  This setting applies only to request matches. PromptguardResponse matches are always masked by default.
-                                  Defaults to `MASK`.
-                                type: string
-                              builtins:
-                                description: |-
-                                  A list of built-in regex patterns to match against the request or response.
-                                  Matches and built-ins are additive.
-                                items:
-                                  description: |-
-                                    BuiltIn regex patterns for specific types of strings in prompts.
-                                    For example, if you specify `CREDIT_CARD`, any credit card numbers
-                                    in the request or response are matched.
-                                  enum:
-                                  - SSN
-                                  - CREDIT_CARD
-                                  - PHONE_NUMBER
-                                  - EMAIL
-                                  type: string
-                                type: array
-                              matches:
-                                description: |-
-                                  A list of regex patterns to match against the request or response.
-                                  Matches and built-ins are additive.
-                                items:
-                                  description: RegexMatch configures the regular expression
-                                    (regex) matching for prompt guards and data masking.
-                                  properties:
-                                    name:
-                                      description: An optional name for this match,
-                                        which can be used for debugging purposes.
-                                      type: string
-                                    pattern:
-                                      description: The regex pattern to match against
-                                        the request or response.
-                                      type: string
-                                  type: object
-                                type: array
-                            type: object
-                          webhook:
-                            description: Configure a webhook to forward responses
-                              to for prompt guarding.
-                            properties:
-                              forwardHeaderMatches:
-                                description: |-
-                                  ForwardHeaderMatches defines a list of HTTP header matches that will be
-                                  used to select the headers to forward to the webhook.
-                                  Request headers are used when forwarding requests and response headers
-                                  are used when forwarding responses.
-                                  By default, no headers are forwarded.
-                                items:
-                                  description: |-
-                                    HTTPHeaderMatch describes how to select a HTTP route by matching HTTP request
-                                    headers.
-                                  properties:
-                                    name:
-                                      description: |-
-                                        Name is the name of the HTTP Header to be matched. Name matching MUST be
-                                        case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
-
-                                        If multiple entries specify equivalent header names, only the first
-                                        entry with an equivalent name MUST be considered for a match. Subsequent
-                                        entries with an equivalent header name MUST be ignored. Due to the
-                                        case-insensitivity of header names, "foo" and "Foo" are considered
-                                        equivalent.
-
-                                        When a header is repeated in an HTTP request, it is
-                                        implementation-specific behavior as to how this is represented.
-                                        Generally, proxies should follow the guidance from the RFC:
-                                        https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2.2 regarding
-                                        processing a repeated header, with special handling for "Set-Cookie".
-                                      maxLength: 256
-                                      minLength: 1
-                                      pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
-                                      type: string
-                                    type:
-                                      default: Exact
-                                      description: |-
-                                        Type specifies how to match against the value of the header.
-
-                                        Support: Core (Exact)
-
-                                        Support: Implementation-specific (RegularExpression)
-
-                                        Since RegularExpression HeaderMatchType has implementation-specific
-                                        conformance, implementations can support POSIX, PCRE or any other dialects
-                                        of regular expressions. Please read the implementation's documentation to
-                                        determine the supported dialect.
-                                      enum:
-                                      - Exact
-                                      - RegularExpression
-                                      type: string
-                                    value:
-                                      description: Value is the value of HTTP Header
-                                        to be matched.
-                                      maxLength: 4096
-                                      minLength: 1
-                                      type: string
-                                  required:
-                                  - name
-                                  - value
-                                  type: object
-                                type: array
-                              host:
-                                description: "Host to send the traffic to.\nNote:
-                                  TLS is not currently supported for webhook.\nExample:\n```yaml\nhost:\n
-                                  \ host: example.com  #The host name of the webhook
-                                  endpoint.\n  port: 443 \t        #The port number
-                                  on which the webhook is listening.\n```"
-                                properties:
-                                  host:
-                                    description: Host is the host name to use for
-                                      the backend.
-                                    minLength: 1
-                                    type: string
-                                  port:
-                                    description: Port is the port to use for the backend.
-                                    format: int32
-                                    type: integer
-                                required:
-                                - host
-                                - port
-                                type: object
-                            required:
-                            - host
-                            type: object
-                        type: object
-                    type: object
-                  routeType:
-                    default: CHAT
-                    description: |-
-                      The type of route to the LLM provider API. Currently, `CHAT` and `CHAT_STREAMING` are supported.
-                      Note: This field is not applicable when using agentgateway
+                      Action defines whether the rule allows or denies the request if matched.
+                      If unspecified, the default is "Allow".
                     enum:
-                    - CHAT
-                    - CHAT_STREAMING
+                    - Allow
+                    - Deny
                     type: string
+                  policy:
+                    description: |-
+                      Policy specifies the RBAC rule to evaluate.
+                      A policy matches only **all** the conditions evaluates to true.
+                    properties:
+                      matchExpressions:
+                        description: |-
+                          MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
+                          These expression should be in the form of a Common Expression Language (CEL) expression.
+                        items:
+                          minLength: 1
+                          type: string
+                        minItems: 1
+                        type: array
+                    type: object
+                required:
+                - policy
                 type: object
               autoHostRewrite:
                 description: |-
@@ -565,38 +129,6 @@ spec:
                   NOTE: If `autoHostRewrite` is set on a route that also has a [URLRewrite filter](https://gateway-api.sigs.k8s.io/reference/spec/#httpurlrewritefilter)
                   configured to override the `hostname`, the `hostname` value will be used and `autoHostRewrite` will be ignored.
                 type: boolean
-              buffer:
-                description: |-
-                  Buffer can be used to set the maximum request size that will be buffered.
-                  Requests exceeding this size will return a 413 response.
-                properties:
-                  disable:
-                    description: |-
-                      Disable the buffer filter.
-                      Can be used to disable buffer policies applied at a higher level in the config hierarchy.
-                    type: object
-                  maxRequestSize:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    description: |-
-                      MaxRequestSize sets the maximum size in bytes of a message body to buffer.
-                      Requests exceeding this size will receive HTTP 413.
-                      Example format: "1Mi", "512Ki", "1Gi"
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
-                    x-kubernetes-validations:
-                    - message: maxRequestSize must be greater than 0 and less than
-                        4Gi
-                      rule: (type(self) == int && int(self) > 0 && int(self) < 4294967296)
-                        || (type(self) == string && quantity(self).isGreaterThan(quantity('0'))
-                        && quantity(self).isLessThan(quantity('4Gi')))
-                type: object
-                x-kubernetes-validations:
-                - message: exactly one of the fields in [maxRequestSize disable] must
-                    be set
-                  rule: '[has(self.maxRequestSize),has(self.disable)].filter(x,x==true).size()
-                    == 1'
               cors:
                 description: Cors specifies the CORS configuration for the policy.
                 properties:
@@ -892,77 +424,36 @@ spec:
                       Envoy: Supported
                       Agentgateway: Supported
                     items:
-                      description: Specifies the way to match a string.
-                      properties:
-                        contains:
-                          description: |-
-                            The input string must contain the substring specified here.
-                            Example: abc matches the value xyz.abc.def
-                          type: string
-                        exact:
-                          description: |-
-                            The input string must match exactly the string specified here.
-                            Example: abc matches the value abc
-                          type: string
-                        ignoreCase:
-                          default: false
-                          description: |-
-                            If true, indicates the exact/prefix/suffix/contains matching should be
-                            case insensitive. This has no effect on the regex match.
-                            For example, the matcher data will match both input string Data and data if this
-                            option is set to true.
-                          type: boolean
-                        prefix:
-                          description: |-
-                            The input string must have the prefix specified here.
-                            Note: empty prefix is not allowed, please use regex instead.
-                            Example: abc matches the value abc.xyz
-                          type: string
-                        safeRegex:
-                          description: |-
-                            The input string must match the Google RE2 regular expression specified here.
-                            See https://github.com/google/re2/wiki/Syntax for the syntax.
-                          type: string
-                        suffix:
-                          description: |-
-                            The input string must have the suffix specified here.
-                            Note: empty prefix is not allowed, please use regex instead.
-                            Example: abc matches the value xyz.abc
-                          type: string
-                      required:
-                      - ignoreCase
-                      type: object
-                      x-kubernetes-validations:
-                      - message: exactly one of the fields in [exact prefix suffix
-                          contains safeRegex] must be set
-                        rule: '[has(self.exact),has(self.prefix),has(self.suffix),has(self.contains),has(self.safeRegex)].filter(x,x==true).size()
-                          == 1'
+                      type: string
                     maxItems: 16
                     type: array
-                  percentageEnabled:
-                    description: |-
-                      Specifies the percentage of requests for which the CSRF filter is enabled.
-                      Envoy: Supported
-                      Agentgateway: Not supported (ignored)
-                    format: int32
-                    maximum: 100
-                    minimum: 0
-                    type: integer
-                  percentageShadowed:
-                    description: |-
-                      Specifies that CSRF policies will be evaluated and tracked, but not enforced.
-                      Envoy: Supported
-                      Agentgateway: Not supported (ignored)
-                    format: int32
-                    maximum: 100
-                    minimum: 0
-                    type: integer
                 type: object
                 x-kubernetes-validations:
                 - message: at most one of the fields in [percentageEnabled percentageShadowed]
                     may be set
                   rule: '[has(self.percentageEnabled),has(self.percentageShadowed)].filter(x,x==true).size()
                     <= 1'
+              directResponse:
+                description: DirectResponseSpec describes the desired state of a DirectResponse.
+                properties:
+                  body:
+                    description: |-
+                      Body defines the content to be returned in the HTTP response body.
+                      The maximum length of the body is restricted to prevent excessively large responses.
+                      If this field is omitted, no body is included in the response.
+                    maxLength: 4096
+                    minLength: 1
+                    type: string
+                  status:
+                    description: StatusCode defines the HTTP status code to return
+                      for this route.
+                    format: int32
+                    maximum: 599
+                    minimum: 200
+                    type: integer
+                required:
+                - status
+                type: object
               extAuth:
                 description: |-
                   ExtAuth specifies the external authentication configuration for the policy.
@@ -1062,69 +553,6 @@ spec:
                         type: string
                     required:
                     - name
-                    type: object
-                  processingMode:
-                    description: ProcessingMode defines how the filter should interact
-                      with the request/response streams
-                    properties:
-                      requestBodyMode:
-                        default: NONE
-                        description: RequestBodyMode determines how to handle the
-                          request body
-                        enum:
-                        - NONE
-                        - STREAMED
-                        - BUFFERED
-                        - BUFFERED_PARTIAL
-                        - FULL_DUPLEX_STREAMED
-                        type: string
-                      requestHeaderMode:
-                        default: SEND
-                        description: RequestHeaderMode determines how to handle the
-                          request headers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      requestTrailerMode:
-                        default: SKIP
-                        description: RequestTrailerMode determines how to handle the
-                          request trailers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      responseBodyMode:
-                        default: NONE
-                        description: ResponseBodyMode determines how to handle the
-                          response body
-                        enum:
-                        - NONE
-                        - STREAMED
-                        - BUFFERED
-                        - BUFFERED_PARTIAL
-                        - FULL_DUPLEX_STREAMED
-                        type: string
-                      responseHeaderMode:
-                        default: SEND
-                        description: ResponseHeaderMode determines how to handle the
-                          response headers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      responseTrailerMode:
-                        default: SKIP
-                        description: ResponseTrailerMode determines how to handle
-                          the response trailers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
                     type: object
                 type: object
                 x-kubernetes-validations:
@@ -1398,6 +826,18 @@ spec:
                 x-kubernetes-validations:
                 - message: At least one of request or response must be provided.
                   rule: has(self.request) || has(self.response)
+              phase:
+                description: |-
+                  The phase to apply the TrafficPolicy to.
+                  If the phase is Gateway, the targetRef must be a Gateway or a Listener.
+                  Gateway is typically used only when a policy needs to influence the routing decision.
+
+                  Even when using Route mode, the policy can target the Gateway/Listener. This is syntax sugar for applying the policy to
+                  all routes under that Gateway/Listener, and follows the merging logic described above.
+                enum:
+                - Gateway
+                - Route
+                type: string
               rateLimit:
                 description: |-
                   RateLimit specifies the rate limiting configuration for the policy.
@@ -1426,42 +866,19 @@ spec:
                                   RateLimitDescriptorEntry defines a single entry in a rate limit descriptor.
                                   Only one entry type may be specified.
                                 properties:
-                                  generic:
-                                    description: |-
-                                      Generic contains the configuration for a generic key-value descriptor entry.
-                                      This field must be specified when Type is Generic.
-                                    properties:
-                                      key:
-                                        description: Key is the name of this descriptor
-                                          entry.
-                                        minLength: 1
-                                        type: string
-                                      value:
-                                        description: Value is the static value for
-                                          this descriptor entry.
-                                        minLength: 1
-                                        type: string
-                                    required:
-                                    - key
-                                    - value
-                                    type: object
-                                  header:
-                                    description: |-
-                                      Header specifies a request header to extract the descriptor value from.
-                                      This field must be specified when Type is Header.
+                                  key:
+                                    description: Key is the name of this descriptor
+                                      entry.
                                     minLength: 1
                                     type: string
-                                  type:
-                                    description: Type specifies what kind of rate
-                                      limit descriptor entry this is.
-                                    enum:
-                                    - Generic
-                                    - Header
-                                    - RemoteAddress
-                                    - Path
+                                  value:
+                                    description: Value is the value for this descriptor
+                                      entry.
+                                    minLength: 1
                                     type: string
                                 required:
-                                - type
+                                - key
+                                - value
                                 type: object
                                 x-kubernetes-validations:
                                 - message: exactly one entry type must be specified
@@ -1545,138 +962,288 @@ spec:
                         type: object
                     type: object
                 type: object
-              rbac:
-                description: |-
-                  RBAC specifies the role-based access control configuration for the policy.
-                  This defines the rules for authorization based on roles and permissions.
-                  With an Envoy-based Gateway, RBAC policies applied at different attachment points in the configuration
-                  hierarchy are not cumulative, and only the most specific policy is enforced. In Envoy, this means an RBAC policy
-                  attached to a route will override any RBAC policies applied to the gateway or listener. In contrast, an
-                  Agentgateway-based Gateway supports cumulative RBAC policies across different attachment points, such that
-                  an RBAC policy attached to a route augments policies applied to the gateway or listener without overriding them.
-                properties:
-                  action:
-                    default: Allow
-                    description: |-
-                      Action defines whether the rule allows or denies the request if matched.
-                      If unspecified, the default is "Allow".
-                    enum:
-                    - Allow
-                    - Deny
-                    type: string
-                  policy:
-                    description: |-
-                      Policy specifies the RBAC rule to evaluate.
-                      A policy matches only **all** the conditions evaluates to true.
-                    properties:
-                      matchExpressions:
-                        description: |-
-                          MatchExpressions defines a set of conditions that must be satisfied for the rule to match.
-                          These expression should be in the form of a Common Expression Language (CEL) expression.
-                          See: https://www.envoyproxy.io/docs/envoy/latest/xds/type/matcher/v3/cel.proto
-                        items:
-                          type: string
-                        minItems: 1
-                        type: array
-                    type: object
-                required:
-                - policy
-                type: object
               retry:
                 description: |-
                   Retry defines the policy for retrying requests.
                   It is applicable to HTTPRoutes, Gateway listeners and XListenerSets, and ignored for other targeted kinds.
                 properties:
-                  attempts:
-                    default: 1
+                  allowCredentials:
                     description: |-
-                      Attempts specifies the number of retry attempts for a request.
-                      Defaults to 1 attempt if not set.
-                      A value of 0 effectively disables retries.
-                    format: int32
-                    minimum: 0
-                    type: integer
-                  backoffBaseInterval:
-                    default: 25ms
+                      AllowCredentials indicates whether the actual cross-origin request allows
+                      to include credentials.
+
+                      When set to true, the gateway will include the `Access-Control-Allow-Credentials`
+                      response header with value true (case-sensitive).
+
+                      When set to false or omitted the gateway will omit the header
+                      `Access-Control-Allow-Credentials` entirely (this is the standard CORS
+                      behavior).
+
+                      Support: Extended
+                    type: boolean
+                  allowHeaders:
                     description: |-
-                      BackoffBaseInterval specifies the base interval used with a fully jittered exponential back-off between retries.
-                      Defaults to 25ms if not set.
-                      Given a backoff base interval B and retry number N, the back-off for the retry is in the range [0, (2^N-1)*B].
-                      The backoff interval is capped at a max of 10 times the base interval.
-                      E.g., given a value of 25ms, the first retry will be delayed randomly by 0-24ms, the 2nd by 0-74ms,
-                      the 3rd by 0-174ms, and so on, and capped to a max of 10 times the base interval (250ms).
-                    type: string
-                    x-kubernetes-validations:
-                    - message: invalid duration value
-                      rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
-                    - message: retry.backoffBaseInterval must be at least 1ms.
-                      rule: duration(self) >= duration('1ms')
-                  perTryTimeout:
-                    description: |-
-                      PerTryTimeout specifies the timeout per retry attempt (incliding the initial attempt).
-                      If a global timeout is configured on a route, this timeout must be less than the global
-                      route timeout.
-                      It is specified as a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "1s" or "500ms".
-                    type: string
-                    x-kubernetes-validations:
-                    - message: invalid duration value
-                      rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
-                    - message: retry.perTryTimeout must be at least 1ms.
-                      rule: duration(self) >= duration('1ms')
-                  retryOn:
-                    description: RetryOn specifies the conditions under which a retry
-                      should be attempted.
-                    items:
-                      description: RetryOnCondition specifies the condition under
-                        which retry takes place.
-                      enum:
-                      - 5xx
-                      - gateway-error
-                      - reset
-                      - reset-before-request
-                      - connect-failure
-                      - envoy-ratelimited
-                      - retriable-4xx
-                      - refused-stream
-                      - retriable-status-codes
-                      - http3-post-connect-failure
-                      - cancelled
-                      - deadline-exceeded
-                      - internal
-                      - resource-exhausted
-                      - unavailable
-                      type: string
-                    minItems: 1
-                    type: array
-                  statusCodes:
-                    description: |-
-                      StatusCodes specifies the HTTP status codes in the range 400-599 that should be retried in addition
-                      to the conditions specified in RetryOn.
+                      AllowHeaders indicates which HTTP request headers are supported for
+                      accessing the requested resource.
+
+                      Header names are not case sensitive.
+
+                      Multiple header names in the value of the `Access-Control-Allow-Headers`
+                      response header are separated by a comma (",").
+
+                      When the `AllowHeaders` field is configured with one or more headers, the
+                      gateway must return the `Access-Control-Allow-Headers` response header
+                      which value is present in the `AllowHeaders` field.
+
+                      If any header name in the `Access-Control-Request-Headers` request header
+                      is not included in the list of header names specified by the response
+                      header `Access-Control-Allow-Headers`, it will present an error on the
+                      client side.
+
+                      If any header name in the `Access-Control-Allow-Headers` response header
+                      does not recognize by the client, it will also occur an error on the
+                      client side.
+
+                      A wildcard indicates that the requests with all HTTP headers are allowed.
+                      The `Access-Control-Allow-Headers` response header can only use `*`
+                      wildcard as value when the `AllowCredentials` field is false or omitted.
+
+                      When the `AllowCredentials` field is true and `AllowHeaders` field
+                      specified with the `*` wildcard, the gateway must specify one or more
+                      HTTP headers in the value of the `Access-Control-Allow-Headers` response
+                      header. The value of the header `Access-Control-Allow-Headers` is same as
+                      the `Access-Control-Request-Headers` header provided by the client. If
+                      the header `Access-Control-Request-Headers` is not included in the
+                      request, the gateway will omit the `Access-Control-Allow-Headers`
+                      response header, instead of specifying the `*` wildcard. A Gateway
+                      implementation may choose to add implementation-specific default headers.
+
+                      Support: Extended
                     items:
                       description: |-
-                        HTTPRouteRetryStatusCode defines an HTTP response status code for
-                        which a backend request should be retried.
+                        HTTPHeaderName is the name of an HTTP header.
 
-                        Implementations MUST support the following status codes as retryable:
+                        Valid values include:
 
-                        * 500
-                        * 502
-                        * 503
-                        * 504
+                        * "Authorization"
+                        * "Set-Cookie"
 
-                        Implementations MAY support specifying additional discrete values in the
-                        500-599 range.
+                        Invalid values include:
 
-                        Implementations MAY support specifying discrete values in the 400-499 range,
-                        which are often inadvisable to retry.
-
-                        <gateway:experimental>
-                      maximum: 599
-                      minimum: 400
-                      type: integer
-                    minItems: 1
+                          - ":method" - ":" is an invalid character. This means that HTTP/2 pseudo
+                            headers are not currently supported by this type.
+                          - "/invalid" - "/ " is an invalid character
+                      maxLength: 256
+                      minLength: 1
+                      pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
+                      type: string
+                    maxItems: 64
                     type: array
+                    x-kubernetes-list-type: set
+                  allowMethods:
+                    description: |-
+                      AllowMethods indicates which HTTP methods are supported for accessing the
+                      requested resource.
+
+                      Valid values are any method defined by RFC9110, along with the special
+                      value `*`, which represents all HTTP methods are allowed.
+
+                      Method names are case sensitive, so these values are also case-sensitive.
+                      (See https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)
+
+                      Multiple method names in the value of the `Access-Control-Allow-Methods`
+                      response header are separated by a comma (",").
+
+                      A CORS-safelisted method is a method that is `GET`, `HEAD`, or `POST`.
+                      (See https://fetch.spec.whatwg.org/#cors-safelisted-method) The
+                      CORS-safelisted methods are always allowed, regardless of whether they
+                      are specified in the `AllowMethods` field.
+
+                      When the `AllowMethods` field is configured with one or more methods, the
+                      gateway must return the `Access-Control-Allow-Methods` response header
+                      which value is present in the `AllowMethods` field.
+
+                      If the HTTP method of the `Access-Control-Request-Method` request header
+                      is not included in the list of methods specified by the response header
+                      `Access-Control-Allow-Methods`, it will present an error on the client
+                      side.
+
+                      The `Access-Control-Allow-Methods` response header can only use `*`
+                      wildcard as value when the `AllowCredentials` field is false or omitted.
+
+                      When the `AllowCredentials` field is true and `AllowMethods` field
+                      specified with the `*` wildcard, the gateway must specify one HTTP method
+                      in the value of the Access-Control-Allow-Methods response header. The
+                      value of the header `Access-Control-Allow-Methods` is same as the
+                      `Access-Control-Request-Method` header provided by the client. If the
+                      header `Access-Control-Request-Method` is not included in the request,
+                      the gateway will omit the `Access-Control-Allow-Methods` response header,
+                      instead of specifying the `*` wildcard. A Gateway implementation may
+                      choose to add implementation-specific default methods.
+
+                      Support: Extended
+                    items:
+                      enum:
+                      - GET
+                      - HEAD
+                      - POST
+                      - PUT
+                      - DELETE
+                      - CONNECT
+                      - OPTIONS
+                      - TRACE
+                      - PATCH
+                      - '*'
+                      type: string
+                    maxItems: 9
+                    type: array
+                    x-kubernetes-list-type: set
+                    x-kubernetes-validations:
+                    - message: AllowMethods cannot contain '*' alongside other methods
+                      rule: '!(''*'' in self && self.size() > 1)'
+                  allowOrigins:
+                    description: |-
+                      AllowOrigins indicates whether the response can be shared with requested
+                      resource from the given `Origin`.
+
+                      The `Origin` consists of a scheme and a host, with an optional port, and
+                      takes the form `<scheme>://<host>(:<port>)`.
+
+                      Valid values for scheme are: `http` and `https`.
+
+                      Valid values for port are any integer between 1 and 65535 (the list of
+                      available TCP/UDP ports). Note that, if not included, port `80` is
+                      assumed for `http` scheme origins, and port `443` is assumed for `https`
+                      origins. This may affect origin matching.
+
+                      The host part of the origin may contain the wildcard character `*`. These
+                      wildcard characters behave as follows:
+
+                      * `*` is a greedy match to the _left_, including any number of
+                        DNS labels to the left of its position. This also means that
+                        `*` will include any number of period `.` characters to the
+                        left of its position.
+                      * A wildcard by itself matches all hosts.
+
+                      An origin value that includes _only_ the `*` character indicates requests
+                      from all `Origin`s are allowed.
+
+                      When the `AllowOrigins` field is configured with multiple origins, it
+                      means the server supports clients from multiple origins. If the request
+                      `Origin` matches the configured allowed origins, the gateway must return
+                      the given `Origin` and sets value of the header
+                      `Access-Control-Allow-Origin` same as the `Origin` header provided by the
+                      client.
+
+                      The status code of a successful response to a "preflight" request is
+                      always an OK status (i.e., 204 or 200).
+
+                      If the request `Origin` does not match the configured allowed origins,
+                      the gateway returns 204/200 response but doesn't set the relevant
+                      cross-origin response headers. Alternatively, the gateway responds with
+                      403 status to the "preflight" request is denied, coupled with omitting
+                      the CORS headers. The cross-origin request fails on the client side.
+                      Therefore, the client doesn't attempt the actual cross-origin request.
+
+                      The `Access-Control-Allow-Origin` response header can only use `*`
+                      wildcard as value when the `AllowCredentials` field is false or omitted.
+
+                      When the `AllowCredentials` field is true and `AllowOrigins` field
+                      specified with the `*` wildcard, the gateway must return a single origin
+                      in the value of the `Access-Control-Allow-Origin` response header,
+                      instead of specifying the `*` wildcard. The value of the header
+                      `Access-Control-Allow-Origin` is same as the `Origin` header provided by
+                      the client.
+
+                      Support: Extended
+                    items:
+                      description: |-
+                        The CORSOrigin MUST NOT be a relative URI, and it MUST follow the URI syntax and
+                        encoding rules specified in RFC3986.  The CORSOrigin MUST include both a
+                        scheme (e.g., "http" or "spiffe") and a scheme-specific-part, or it should be a single '*' character.
+                        URIs that include an authority MUST include a fully qualified domain name or
+                        IP address as the host.
+                        <gateway:util:excludeFromCRD> The below regex was generated to simplify the assertion of scheme://host:<port> being port optional </gateway:util:excludeFromCRD>
+                      maxLength: 253
+                      minLength: 1
+                      pattern: (^\*$)|(^([a-zA-Z][a-zA-Z0-9+\-.]+):\/\/([^:/?#]+)(:([0-9]{1,5}))?$)
+                      type: string
+                    maxItems: 64
+                    type: array
+                    x-kubernetes-list-type: set
+                    x-kubernetes-validations:
+                    - message: AllowOrigins cannot contain '*' alongside other origins
+                      rule: '!(''*'' in self && self.size() > 1)'
+                  exposeHeaders:
+                    description: |-
+                      ExposeHeaders indicates which HTTP response headers can be exposed
+                      to client-side scripts in response to a cross-origin request.
+
+                      A CORS-safelisted response header is an HTTP header in a CORS response
+                      that it is considered safe to expose to the client scripts.
+                      The CORS-safelisted response headers include the following headers:
+                      `Cache-Control`
+                      `Content-Language`
+                      `Content-Length`
+                      `Content-Type`
+                      `Expires`
+                      `Last-Modified`
+                      `Pragma`
+                      (See https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)
+                      The CORS-safelisted response headers are exposed to client by default.
+
+                      When an HTTP header name is specified using the `ExposeHeaders` field,
+                      this additional header will be exposed as part of the response to the
+                      client.
+
+                      Header names are not case sensitive.
+
+                      Multiple header names in the value of the `Access-Control-Expose-Headers`
+                      response header are separated by a comma (",").
+
+                      A wildcard indicates that the responses with all HTTP headers are exposed
+                      to clients. The `Access-Control-Expose-Headers` response header can only
+                      use `*` wildcard as value when the `AllowCredentials` field is false or omitted.
+
+                      Support: Extended
+                    items:
+                      description: |-
+                        HTTPHeaderName is the name of an HTTP header.
+
+                        Valid values include:
+
+                        * "Authorization"
+                        * "Set-Cookie"
+
+                        Invalid values include:
+
+                          - ":method" - ":" is an invalid character. This means that HTTP/2 pseudo
+                            headers are not currently supported by this type.
+                          - "/invalid" - "/ " is an invalid character
+                      maxLength: 256
+                      minLength: 1
+                      pattern: ^[A-Za-z0-9!#$%&'*+\-.^_\x60|~]+$
+                      type: string
+                    maxItems: 64
+                    type: array
+                    x-kubernetes-list-type: set
+                  maxAge:
+                    default: 5
+                    description: |-
+                      MaxAge indicates the duration (in seconds) for the client to cache the
+                      results of a "preflight" request.
+
+                      The information provided by the `Access-Control-Allow-Methods` and
+                      `Access-Control-Allow-Headers` response headers can be cached by the
+                      client until the time specified by `Access-Control-Max-Age` elapses.
+
+                      The default value of `Access-Control-Max-Age` response header is 5
+                      (seconds).
+                    format: int32
+                    minimum: 1
+                    type: integer
                 type: object
+                x-kubernetes-preserve-unknown-fields: true
                 x-kubernetes-validations:
                 - message: retryOn or statusCodes must be set.
                   rule: has(self.retryOn) || has(self.statusCodes)
@@ -1807,6 +1374,243 @@ spec:
                     - message: invalid duration value
                       rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
                 type: object
+              tracing:
+                description: Tracing contains various settings for OpenTelemetry tracer.
+                properties:
+                  clientSampling:
+                    description: Target percentage of requests managed by this HTTP
+                      connection manager that will be force traced if the x-client-trace-id
+                      header is set. Defaults to 100%
+                    minLength: 1
+                    type: string
+                  fields:
+                    description: A list of attributes with a unique name to create
+                      attributes for the active span.
+                    items:
+                      properties:
+                        add:
+                          additionalProperties:
+                            minLength: 1
+                            type: string
+                          type: object
+                        remove:
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    type: array
+                  provider:
+                    description: Provider defines the upstream to which envoy sends
+                      traces
+                    maxProperties: 1
+                    minProperties: 1
+                    properties:
+                      openTelemetry:
+                        description: Tracing contains various settings for Envoy's
+                          OTel tracer.
+                        properties:
+                          grpcService:
+                            description: Send traces to the gRPC service
+                            properties:
+                              authority:
+                                description: |-
+                                  The :authority header in the grpc request. If this field is not set, the authority header value will be cluster_name.
+                                  Note that this authority does not override the SNI. The SNI is provided by the transport socket of the cluster.
+                                type: string
+                              backendRef:
+                                description: The backend gRPC service. Can be any
+                                  type of supported backend (Kubernetes Service, kgateway
+                                  Backend, etc..)
+                                properties:
+                                  group:
+                                    default: ""
+                                    description: |-
+                                      Group is the group of the referent. For example, "gateway.networking.k8s.io".
+                                      When unspecified or empty string, core API group is inferred.
+                                    maxLength: 253
+                                    pattern: ^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                    type: string
+                                  kind:
+                                    default: Service
+                                    description: |-
+                                      Kind is the Kubernetes resource kind of the referent. For example
+                                      "Service".
+
+                                      Defaults to "Service" when not specified.
+
+                                      ExternalName services can refer to CNAME DNS records that may live
+                                      outside of the cluster and as such are difficult to reason about in
+                                      terms of conformance. They also may not be safe to forward to (see
+                                      CVE-2021-25740 for more information). Implementations SHOULD NOT
+                                      support ExternalName Services.
+
+                                      Support: Core (Services with a type other than ExternalName)
+
+                                      Support: Implementation-specific (Services with type ExternalName)
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                    type: string
+                                  name:
+                                    description: Name is the name of the referent.
+                                    maxLength: 253
+                                    minLength: 1
+                                    type: string
+                                  namespace:
+                                    description: |-
+                                      Namespace is the namespace of the backend. When unspecified, the local
+                                      namespace is inferred.
+
+                                      Note that when a namespace different than the local namespace is specified,
+                                      a ReferenceGrant object is required in the referent namespace to allow that
+                                      namespace's owner to accept the reference. See the ReferenceGrant
+                                      documentation for details.
+
+                                      Support: Core
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port specifies the destination port number to use for this resource.
+                                      Port is required when the referent is a Kubernetes Service. In this
+                                      case, the port number is the service port number, not the target port.
+                                      For other resources, destination port might be derived from the referent
+                                      resource or this field.
+                                    format: int32
+                                    maximum: 65535
+                                    minimum: 1
+                                    type: integer
+                                  weight:
+                                    default: 1
+                                    description: |-
+                                      Weight specifies the proportion of requests forwarded to the referenced
+                                      backend. This is computed as weight/(sum of all weights in this
+                                      BackendRefs list). For non-zero values, there may be some epsilon from
+                                      the exact proportion defined here depending on the precision an
+                                      implementation supports. Weight is not a percentage and the sum of
+                                      weights does not need to equal 100.
+
+                                      If only one backend is specified and it has a weight greater than 0, 100%
+                                      of the traffic is forwarded to that backend. If weight is set to 0, no
+                                      traffic should be forwarded for this entry. If unspecified, weight
+                                      defaults to 1.
+
+                                      Support for this field varies based on the context where used.
+                                    format: int32
+                                    maximum: 1000000
+                                    minimum: 0
+                                    type: integer
+                                required:
+                                - name
+                                type: object
+                                x-kubernetes-validations:
+                                - message: Must have port for Service reference
+                                  rule: '(size(self.group) == 0 && self.kind == ''Service'')
+                                    ? has(self.port) : true'
+                              initialMetadata:
+                                description: |-
+                                  Additional metadata to include in streams initiated to the GrpcService.
+                                  This can be used for scenarios in which additional ad hoc authorization headers (e.g. x-foo-bar: baz-key) are to be injected
+                                items:
+                                  description: |-
+                                    Header name/value pair.
+                                    Ref: https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/base.proto#envoy-v3-api-msg-config-core-v3-headervalue
+                                  properties:
+                                    key:
+                                      description: Header name.
+                                      type: string
+                                    value:
+                                      description: Header value.
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                type: array
+                              maxReceiveMessageLength:
+                                description: |-
+                                  Maximum gRPC message size that is allowed to be received. If a message over this limit is received, the gRPC stream is terminated with the RESOURCE_EXHAUSTED error.
+                                  Defaults to 0, which means unlimited.
+                                format: int32
+                                minimum: 1
+                                type: integer
+                              retryPolicy:
+                                description: |-
+                                  Indicates the retry policy for re-establishing the gRPC stream.
+                                  If max interval is not provided, it will be set to ten times the provided base interval
+                                properties:
+                                  numRetries:
+                                    description: Specifies the allowed number of retries.
+                                      Defaults to 1.
+                                    format: int32
+                                    minimum: 1
+                                    type: integer
+                                  retryBackOff:
+                                    description: |-
+                                      Specifies parameters that control retry backoff strategy.
+                                      the default base interval is 1000 milliseconds and the default maximum interval is 10 times the base interval.
+                                    properties:
+                                      baseInterval:
+                                        description: The base interval to be used
+                                          for the next back off computation. It should
+                                          be greater than zero and less than or equal
+                                          to max_interval.
+                                        type: string
+                                        x-kubernetes-validations:
+                                        - message: invalid duration value
+                                          rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
+                                      maxInterval:
+                                        description: Specifies the maximum interval
+                                          between retries. This parameter is optional,
+                                          but must be greater than or equal to the
+                                          base_interval if set. The default is 10
+                                          times the base_interval.
+                                        type: string
+                                        x-kubernetes-validations:
+                                        - message: invalid duration value
+                                          rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
+                                    required:
+                                    - baseInterval
+                                    type: object
+                                type: object
+                              skipEnvoyHeaders:
+                                description: This provides gRPC client level control
+                                  over envoy generated headers. If false, the header
+                                  will be sent but it can be overridden by per stream
+                                  option. If true, the header will be removed and
+                                  can not be overridden by per stream option. Default
+                                  to false.
+                                type: boolean
+                              timeout:
+                                description: The timeout for the gRPC request. This
+                                  is the timeout for a specific request
+                                type: string
+                                x-kubernetes-validations:
+                                - message: invalid duration value
+                                  rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
+                            required:
+                            - backendRef
+                            type: object
+                          serviceName:
+                            description: |-
+                              The name for the service. This will be populated in the ResourceSpan Resource attributes
+                              Defaults to the envoy cluster name. Ie: `<gateway-name>.<gateway-namespace>`
+                            type: string
+                        required:
+                        - grpcService
+                        type: object
+                    type: object
+                  randomSampling:
+                    description: Target percentage of requests managed by this HTTP
+                      connection manager that will be randomly selected for trace
+                      generation, if not requested by the client or not forced. Defaults
+                      to 100%
+                    minLength: 1
+                    type: string
+                required:
+                - provider
+                type: object
               transformation:
                 description: |-
                   Transformation is used to mutate and transform requests and responses
@@ -1831,6 +1635,7 @@ spec:
                                 Inja templates are supported for Envoy-based data planes only.
                                 CEL expressions are supported for agentgateway data plane only.
                                 The system will auto-detect the appropriate template format based on the data plane.
+                              minLength: 1
                               type: string
                           required:
                           - name
@@ -1845,26 +1650,11 @@ spec:
                           Body controls both how to parse the body and if needed how to set.
                           If empty, body will not be buffered.
                         properties:
-                          parseAs:
-                            default: AsString
-                            description: |-
-                              ParseAs defines what auto formatting should be applied to the body.
-                              This can make interacting with keys within a json body much easier if AsJson is selected.
-                              This field is only supported for kgateway (Envoy) data plane and is ignored by agentgateway.
-                              For agentgateway, use json(request.body) or json(response.body) directly in CEL expressions.
-                            enum:
-                            - AsString
-                            - AsJson
-                            type: string
                           value:
-                            description: |-
-                              Value is the template to apply to generate the output value for the body.
-                              Inja templates are supported for Envoy-based data planes only.
-                              CEL expressions are supported for agentgateway data plane only.
-                              The system will auto-detect the appropriate template format based on the data plane.
+                            description: Value is the template to apply to generate
+                              the output value for the body.
+                            minLength: 1
                             type: string
-                        required:
-                        - parseAs
                         type: object
                       remove:
                         description: Remove is a list of header names to remove from
@@ -1889,6 +1679,7 @@ spec:
                                 Inja templates are supported for Envoy-based data planes only.
                                 CEL expressions are supported for agentgateway data plane only.
                                 The system will auto-detect the appropriate template format based on the data plane.
+                              minLength: 1
                               type: string
                           required:
                           - name
@@ -1918,6 +1709,7 @@ spec:
                                 Inja templates are supported for Envoy-based data planes only.
                                 CEL expressions are supported for agentgateway data plane only.
                                 The system will auto-detect the appropriate template format based on the data plane.
+                              minLength: 1
                               type: string
                           required:
                           - name
@@ -1932,26 +1724,11 @@ spec:
                           Body controls both how to parse the body and if needed how to set.
                           If empty, body will not be buffered.
                         properties:
-                          parseAs:
-                            default: AsString
-                            description: |-
-                              ParseAs defines what auto formatting should be applied to the body.
-                              This can make interacting with keys within a json body much easier if AsJson is selected.
-                              This field is only supported for kgateway (Envoy) data plane and is ignored by agentgateway.
-                              For agentgateway, use json(request.body) or json(response.body) directly in CEL expressions.
-                            enum:
-                            - AsString
-                            - AsJson
-                            type: string
                           value:
-                            description: |-
-                              Value is the template to apply to generate the output value for the body.
-                              Inja templates are supported for Envoy-based data planes only.
-                              CEL expressions are supported for agentgateway data plane only.
-                              The system will auto-detect the appropriate template format based on the data plane.
+                            description: Value is the template to apply to generate
+                              the output value for the body.
+                            minLength: 1
                             type: string
-                        required:
-                        - parseAs
                         type: object
                       remove:
                         description: Remove is a list of header names to remove from
@@ -1976,6 +1753,7 @@ spec:
                                 Inja templates are supported for Envoy-based data planes only.
                                 CEL expressions are supported for agentgateway data plane only.
                                 The system will auto-detect the appropriate template format based on the data plane.
+                              minLength: 1
                               type: string
                           required:
                           - name
@@ -1987,6 +1765,8 @@ spec:
                         x-kubernetes-list-type: map
                     type: object
                 type: object
+            required:
+            - phase
             type: object
             x-kubernetes-validations:
             - message: autoHostRewrite can only be used when targeting HTTPRoute resources

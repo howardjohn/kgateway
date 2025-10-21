@@ -3,10 +3,9 @@
 package fake
 
 import (
+	v1alpha1 "github.com/kgateway-dev/kgateway/v2/pkg/client/clientset/versioned/typed/api/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
-
-	v1alpha1 "github.com/kgateway-dev/kgateway/v2/pkg/client/clientset/versioned/typed/api/v1alpha1"
 )
 
 type FakeGatewayV1alpha1 struct {
@@ -21,8 +20,8 @@ func (c *FakeGatewayV1alpha1) BackendConfigPolicies(namespace string) v1alpha1.B
 	return newFakeBackendConfigPolicies(c, namespace)
 }
 
-func (c *FakeGatewayV1alpha1) DirectResponses(namespace string) v1alpha1.DirectResponseInterface {
-	return newFakeDirectResponses(c, namespace)
+func (c *FakeGatewayV1alpha1) FrontendPolicies(namespace string) v1alpha1.FrontendPolicyInterface {
+	return newFakeFrontendPolicies(c, namespace)
 }
 
 func (c *FakeGatewayV1alpha1) GatewayExtensions(namespace string) v1alpha1.GatewayExtensionInterface {
@@ -31,10 +30,6 @@ func (c *FakeGatewayV1alpha1) GatewayExtensions(namespace string) v1alpha1.Gatew
 
 func (c *FakeGatewayV1alpha1) GatewayParameters(namespace string) v1alpha1.GatewayParametersInterface {
 	return newFakeGatewayParameters(c, namespace)
-}
-
-func (c *FakeGatewayV1alpha1) HTTPListenerPolicies(namespace string) v1alpha1.HTTPListenerPolicyInterface {
-	return newFakeHTTPListenerPolicies(c, namespace)
 }
 
 func (c *FakeGatewayV1alpha1) TrafficPolicies(namespace string) v1alpha1.TrafficPolicyInterface {

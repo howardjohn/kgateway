@@ -5,10 +5,8 @@ package v1alpha1
 // OpenTelemetryTracingConfigApplyConfiguration represents a declarative configuration of the OpenTelemetryTracingConfig type for use
 // with apply.
 type OpenTelemetryTracingConfigApplyConfiguration struct {
-	GrpcService       *CommonGrpcServiceApplyConfiguration `json:"grpcService,omitempty"`
-	ServiceName       *string                              `json:"serviceName,omitempty"`
-	ResourceDetectors []ResourceDetectorApplyConfiguration `json:"resourceDetectors,omitempty"`
-	Sampler           *SamplerApplyConfiguration           `json:"sampler,omitempty"`
+	GrpcService *CommonGrpcServiceApplyConfiguration `json:"grpcService,omitempty"`
+	ServiceName *string                              `json:"serviceName,omitempty"`
 }
 
 // OpenTelemetryTracingConfigApplyConfiguration constructs a declarative configuration of the OpenTelemetryTracingConfig type for use with
@@ -30,26 +28,5 @@ func (b *OpenTelemetryTracingConfigApplyConfiguration) WithGrpcService(value *Co
 // If called multiple times, the ServiceName field is set to the value of the last call.
 func (b *OpenTelemetryTracingConfigApplyConfiguration) WithServiceName(value string) *OpenTelemetryTracingConfigApplyConfiguration {
 	b.ServiceName = &value
-	return b
-}
-
-// WithResourceDetectors adds the given value to the ResourceDetectors field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the ResourceDetectors field.
-func (b *OpenTelemetryTracingConfigApplyConfiguration) WithResourceDetectors(values ...*ResourceDetectorApplyConfiguration) *OpenTelemetryTracingConfigApplyConfiguration {
-	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithResourceDetectors")
-		}
-		b.ResourceDetectors = append(b.ResourceDetectors, *values[i])
-	}
-	return b
-}
-
-// WithSampler sets the Sampler field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Sampler field is set to the value of the last call.
-func (b *OpenTelemetryTracingConfigApplyConfiguration) WithSampler(value *SamplerApplyConfiguration) *OpenTelemetryTracingConfigApplyConfiguration {
-	b.Sampler = value
 	return b
 }

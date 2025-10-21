@@ -2,13 +2,15 @@
 
 package v1alpha1
 
+import (
+	apiv1alpha1 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
+)
+
 // AccessLogApplyConfiguration represents a declarative configuration of the AccessLog type for use
 // with apply.
 type AccessLogApplyConfiguration struct {
-	FileSink      *FileSinkApplyConfiguration                      `json:"fileSink,omitempty"`
-	GrpcService   *AccessLogGrpcServiceApplyConfiguration          `json:"grpcService,omitempty"`
-	OpenTelemetry *OpenTelemetryAccessLogServiceApplyConfiguration `json:"openTelemetry,omitempty"`
-	Filter        *AccessLogFilterApplyConfiguration               `json:"filter,omitempty"`
+	Filter *apiv1alpha1.CELExpression         `json:"filter,omitempty"`
+	Fields *AccessLogFieldsApplyConfiguration `json:"fields,omitempty"`
 }
 
 // AccessLogApplyConfiguration constructs a declarative configuration of the AccessLog type for use with
@@ -17,34 +19,18 @@ func AccessLog() *AccessLogApplyConfiguration {
 	return &AccessLogApplyConfiguration{}
 }
 
-// WithFileSink sets the FileSink field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the FileSink field is set to the value of the last call.
-func (b *AccessLogApplyConfiguration) WithFileSink(value *FileSinkApplyConfiguration) *AccessLogApplyConfiguration {
-	b.FileSink = value
-	return b
-}
-
-// WithGrpcService sets the GrpcService field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the GrpcService field is set to the value of the last call.
-func (b *AccessLogApplyConfiguration) WithGrpcService(value *AccessLogGrpcServiceApplyConfiguration) *AccessLogApplyConfiguration {
-	b.GrpcService = value
-	return b
-}
-
-// WithOpenTelemetry sets the OpenTelemetry field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the OpenTelemetry field is set to the value of the last call.
-func (b *AccessLogApplyConfiguration) WithOpenTelemetry(value *OpenTelemetryAccessLogServiceApplyConfiguration) *AccessLogApplyConfiguration {
-	b.OpenTelemetry = value
-	return b
-}
-
 // WithFilter sets the Filter field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Filter field is set to the value of the last call.
-func (b *AccessLogApplyConfiguration) WithFilter(value *AccessLogFilterApplyConfiguration) *AccessLogApplyConfiguration {
-	b.Filter = value
+func (b *AccessLogApplyConfiguration) WithFilter(value apiv1alpha1.CELExpression) *AccessLogApplyConfiguration {
+	b.Filter = &value
+	return b
+}
+
+// WithFields sets the Fields field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Fields field is set to the value of the last call.
+func (b *AccessLogApplyConfiguration) WithFields(value *AccessLogFieldsApplyConfiguration) *AccessLogApplyConfiguration {
+	b.Fields = value
 	return b
 }

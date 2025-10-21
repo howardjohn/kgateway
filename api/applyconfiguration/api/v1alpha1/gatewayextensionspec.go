@@ -2,14 +2,9 @@
 
 package v1alpha1
 
-import (
-	apiv1alpha1 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
-)
-
 // GatewayExtensionSpecApplyConfiguration represents a declarative configuration of the GatewayExtensionSpec type for use
 // with apply.
 type GatewayExtensionSpecApplyConfiguration struct {
-	Type      *apiv1alpha1.GatewayExtensionType    `json:"type,omitempty"`
 	ExtAuth   *ExtAuthProviderApplyConfiguration   `json:"extAuth,omitempty"`
 	ExtProc   *ExtProcProviderApplyConfiguration   `json:"extProc,omitempty"`
 	RateLimit *RateLimitProviderApplyConfiguration `json:"rateLimit,omitempty"`
@@ -19,14 +14,6 @@ type GatewayExtensionSpecApplyConfiguration struct {
 // apply.
 func GatewayExtensionSpec() *GatewayExtensionSpecApplyConfiguration {
 	return &GatewayExtensionSpecApplyConfiguration{}
-}
-
-// WithType sets the Type field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Type field is set to the value of the last call.
-func (b *GatewayExtensionSpecApplyConfiguration) WithType(value apiv1alpha1.GatewayExtensionType) *GatewayExtensionSpecApplyConfiguration {
-	b.Type = &value
-	return b
 }
 
 // WithExtAuth sets the ExtAuth field in the declarative configuration to the given value

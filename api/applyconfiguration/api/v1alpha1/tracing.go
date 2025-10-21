@@ -2,17 +2,17 @@
 
 package v1alpha1
 
+import (
+	apiv1alpha1 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
+)
+
 // TracingApplyConfiguration represents a declarative configuration of the Tracing type for use
 // with apply.
 type TracingApplyConfiguration struct {
-	Provider          *TracingProviderApplyConfiguration  `json:"provider,omitempty"`
-	ClientSampling    *int32                              `json:"clientSampling,omitempty"`
-	RandomSampling    *int32                              `json:"randomSampling,omitempty"`
-	OverallSampling   *int32                              `json:"overallSampling,omitempty"`
-	Verbose           *bool                               `json:"verbose,omitempty"`
-	MaxPathTagLength  *int32                              `json:"maxPathTagLength,omitempty"`
-	Attributes        []CustomAttributeApplyConfiguration `json:"attributes,omitempty"`
-	SpawnUpstreamSpan *bool                               `json:"spawnUpstreamSpan,omitempty"`
+	Provider       *TracingProviderApplyConfiguration  `json:"provider,omitempty"`
+	ClientSampling *apiv1alpha1.CELExpression          `json:"clientSampling,omitempty"`
+	RandomSampling *apiv1alpha1.CELExpression          `json:"randomSampling,omitempty"`
+	Fields         []AccessLogFieldsApplyConfiguration `json:"fields,omitempty"`
 }
 
 // TracingApplyConfiguration constructs a declarative configuration of the Tracing type for use with
@@ -32,7 +32,7 @@ func (b *TracingApplyConfiguration) WithProvider(value *TracingProviderApplyConf
 // WithClientSampling sets the ClientSampling field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ClientSampling field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithClientSampling(value int32) *TracingApplyConfiguration {
+func (b *TracingApplyConfiguration) WithClientSampling(value apiv1alpha1.CELExpression) *TracingApplyConfiguration {
 	b.ClientSampling = &value
 	return b
 }
@@ -40,52 +40,20 @@ func (b *TracingApplyConfiguration) WithClientSampling(value int32) *TracingAppl
 // WithRandomSampling sets the RandomSampling field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the RandomSampling field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithRandomSampling(value int32) *TracingApplyConfiguration {
+func (b *TracingApplyConfiguration) WithRandomSampling(value apiv1alpha1.CELExpression) *TracingApplyConfiguration {
 	b.RandomSampling = &value
 	return b
 }
 
-// WithOverallSampling sets the OverallSampling field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the OverallSampling field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithOverallSampling(value int32) *TracingApplyConfiguration {
-	b.OverallSampling = &value
-	return b
-}
-
-// WithVerbose sets the Verbose field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Verbose field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithVerbose(value bool) *TracingApplyConfiguration {
-	b.Verbose = &value
-	return b
-}
-
-// WithMaxPathTagLength sets the MaxPathTagLength field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the MaxPathTagLength field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithMaxPathTagLength(value int32) *TracingApplyConfiguration {
-	b.MaxPathTagLength = &value
-	return b
-}
-
-// WithAttributes adds the given value to the Attributes field in the declarative configuration
+// WithFields adds the given value to the Fields field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Attributes field.
-func (b *TracingApplyConfiguration) WithAttributes(values ...*CustomAttributeApplyConfiguration) *TracingApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the Fields field.
+func (b *TracingApplyConfiguration) WithFields(values ...*AccessLogFieldsApplyConfiguration) *TracingApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithAttributes")
+			panic("nil value passed to WithFields")
 		}
-		b.Attributes = append(b.Attributes, *values[i])
+		b.Fields = append(b.Fields, *values[i])
 	}
-	return b
-}
-
-// WithSpawnUpstreamSpan sets the SpawnUpstreamSpan field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the SpawnUpstreamSpan field is set to the value of the last call.
-func (b *TracingApplyConfiguration) WithSpawnUpstreamSpan(value bool) *TracingApplyConfiguration {
-	b.SpawnUpstreamSpan = &value
 	return b
 }

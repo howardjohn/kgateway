@@ -4,22 +4,17 @@ package v1alpha1
 
 import (
 	v1 "k8s.io/api/core/v1"
-	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // TLSApplyConfiguration represents a declarative configuration of the TLS type for use
 // with apply.
 type TLSApplyConfiguration struct {
-	SecretRef               *v1.LocalObjectReference            `json:"secretRef,omitempty"`
-	Files                   *TLSFilesApplyConfiguration         `json:"files,omitempty"`
-	WellKnownCACertificates *apisv1.WellKnownCACertificatesType `json:"wellKnownCACertificates,omitempty"`
-	InsecureSkipVerify      *bool                               `json:"insecureSkipVerify,omitempty"`
-	Sni                     *string                             `json:"sni,omitempty"`
-	VerifySubjectAltNames   []string                            `json:"verifySubjectAltNames,omitempty"`
-	Parameters              *TLSParametersApplyConfiguration    `json:"parameters,omitempty"`
-	AlpnProtocols           []string                            `json:"alpnProtocols,omitempty"`
-	AllowRenegotiation      *bool                               `json:"allowRenegotiation,omitempty"`
-	SimpleTLS               *bool                               `json:"simpleTLS,omitempty"`
+	SecretRef             *v1.LocalObjectReference         `json:"secretRef,omitempty"`
+	InsecureSkipVerify    *bool                            `json:"insecureSkipVerify,omitempty"`
+	Sni                   *string                          `json:"sni,omitempty"`
+	VerifySubjectAltNames []string                         `json:"verifySubjectAltNames,omitempty"`
+	Parameters            *TLSParametersApplyConfiguration `json:"parameters,omitempty"`
+	AlpnProtocols         []string                         `json:"alpnProtocols,omitempty"`
 }
 
 // TLSApplyConfiguration constructs a declarative configuration of the TLS type for use with
@@ -33,22 +28,6 @@ func TLS() *TLSApplyConfiguration {
 // If called multiple times, the SecretRef field is set to the value of the last call.
 func (b *TLSApplyConfiguration) WithSecretRef(value v1.LocalObjectReference) *TLSApplyConfiguration {
 	b.SecretRef = &value
-	return b
-}
-
-// WithFiles sets the Files field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Files field is set to the value of the last call.
-func (b *TLSApplyConfiguration) WithFiles(value *TLSFilesApplyConfiguration) *TLSApplyConfiguration {
-	b.Files = value
-	return b
-}
-
-// WithWellKnownCACertificates sets the WellKnownCACertificates field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the WellKnownCACertificates field is set to the value of the last call.
-func (b *TLSApplyConfiguration) WithWellKnownCACertificates(value apisv1.WellKnownCACertificatesType) *TLSApplyConfiguration {
-	b.WellKnownCACertificates = &value
 	return b
 }
 
@@ -93,21 +72,5 @@ func (b *TLSApplyConfiguration) WithAlpnProtocols(values ...string) *TLSApplyCon
 	for i := range values {
 		b.AlpnProtocols = append(b.AlpnProtocols, values[i])
 	}
-	return b
-}
-
-// WithAllowRenegotiation sets the AllowRenegotiation field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AllowRenegotiation field is set to the value of the last call.
-func (b *TLSApplyConfiguration) WithAllowRenegotiation(value bool) *TLSApplyConfiguration {
-	b.AllowRenegotiation = &value
-	return b
-}
-
-// WithSimpleTLS sets the SimpleTLS field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the SimpleTLS field is set to the value of the last call.
-func (b *TLSApplyConfiguration) WithSimpleTLS(value bool) *TLSApplyConfiguration {
-	b.SimpleTLS = &value
 	return b
 }

@@ -57,8 +57,8 @@ type TrafficPolicySpec struct {
 	// Even when using Route mode, the policy can target the Gateway/Listener. This is syntax sugar for applying the policy to
 	// all routes under that Gateway/Listener, and follows the merging logic described above.
 	//
-	// +kubebuilder:validation:Enum=Gateway,Route
-	Phase string
+	// +kubebuilder:validation:Enum=Gateway;Route
+	Phase string `json:"phase"`
 	// TargetRefs specifies the target resources by reference to attach the policy to.
 	// +optional
 	//
@@ -184,6 +184,8 @@ type Transform struct {
 }
 
 type Template string
+
+// +kubebuilder:validation:MinLength=1
 type CELExpression string
 
 // EnvoyHeaderName is the name of a header or pseudo header
@@ -327,7 +329,6 @@ type RateLimitDescriptorEntry struct {
 
 	// Value is the value for this descriptor entry.
 	// +required
-	// +kubebuilder:validation:MinLength=1
 	Value CELExpression `json:"value"`
 }
 
@@ -395,7 +396,8 @@ type RetryOnCondition string
 //
 // +kubebuilder:validation:XValidation:rule="has(self.retryOn) || has(self.statusCodes)",message="retryOn or statusCodes must be set."
 type Retry struct {
-	gwv1.HTTPRouteRetry
+	// +kubebuilder:pruning:PreserveUnknownFields
+	*gwv1.HTTPCORSFilter `json:",inline"`
 }
 
 // DirectResponseSpec describes the desired state of a DirectResponse.

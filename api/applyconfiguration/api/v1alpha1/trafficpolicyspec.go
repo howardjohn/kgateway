@@ -5,9 +5,9 @@ package v1alpha1
 // TrafficPolicySpecApplyConfiguration represents a declarative configuration of the TrafficPolicySpec type for use
 // with apply.
 type TrafficPolicySpecApplyConfiguration struct {
+	Phase           *string                                                       `json:"phase,omitempty"`
 	TargetRefs      []LocalPolicyTargetReferenceWithSectionNameApplyConfiguration `json:"targetRefs,omitempty"`
 	TargetSelectors []LocalPolicyTargetSelectorWithSectionNameApplyConfiguration  `json:"targetSelectors,omitempty"`
-	AI              *AIPolicyApplyConfiguration                                   `json:"ai,omitempty"`
 	Transformation  *TransformationPolicyApplyConfiguration                       `json:"transformation,omitempty"`
 	ExtProc         *ExtProcPolicyApplyConfiguration                              `json:"extProc,omitempty"`
 	ExtAuth         *ExtAuthPolicyApplyConfiguration                              `json:"extAuth,omitempty"`
@@ -16,16 +16,26 @@ type TrafficPolicySpecApplyConfiguration struct {
 	Csrf            *CSRFPolicyApplyConfiguration                                 `json:"csrf,omitempty"`
 	HeaderModifiers *HeaderModifiersApplyConfiguration                            `json:"headerModifiers,omitempty"`
 	AutoHostRewrite *bool                                                         `json:"autoHostRewrite,omitempty"`
-	Buffer          *BufferApplyConfiguration                                     `json:"buffer,omitempty"`
 	Timeouts        *TimeoutsApplyConfiguration                                   `json:"timeouts,omitempty"`
 	Retry           *RetryApplyConfiguration                                      `json:"retry,omitempty"`
-	RBAC            *RBACApplyConfiguration                                       `json:"rbac,omitempty"`
+	DirectResponse  *DirectResponseApplyConfiguration                             `json:"directResponse,omitempty"`
+	Authorization   *AuthorizationApplyConfiguration                              `json:"authorization,omitempty"`
+	AccessLog       []AccessLogApplyConfiguration                                 `json:"accessLog,omitempty"`
+	Tracing         *TracingApplyConfiguration                                    `json:"tracing,omitempty"`
 }
 
 // TrafficPolicySpecApplyConfiguration constructs a declarative configuration of the TrafficPolicySpec type for use with
 // apply.
 func TrafficPolicySpec() *TrafficPolicySpecApplyConfiguration {
 	return &TrafficPolicySpecApplyConfiguration{}
+}
+
+// WithPhase sets the Phase field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Phase field is set to the value of the last call.
+func (b *TrafficPolicySpecApplyConfiguration) WithPhase(value string) *TrafficPolicySpecApplyConfiguration {
+	b.Phase = &value
+	return b
 }
 
 // WithTargetRefs adds the given value to the TargetRefs field in the declarative configuration
@@ -51,14 +61,6 @@ func (b *TrafficPolicySpecApplyConfiguration) WithTargetSelectors(values ...*Loc
 		}
 		b.TargetSelectors = append(b.TargetSelectors, *values[i])
 	}
-	return b
-}
-
-// WithAI sets the AI field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AI field is set to the value of the last call.
-func (b *TrafficPolicySpecApplyConfiguration) WithAI(value *AIPolicyApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
-	b.AI = value
 	return b
 }
 
@@ -126,14 +128,6 @@ func (b *TrafficPolicySpecApplyConfiguration) WithAutoHostRewrite(value bool) *T
 	return b
 }
 
-// WithBuffer sets the Buffer field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Buffer field is set to the value of the last call.
-func (b *TrafficPolicySpecApplyConfiguration) WithBuffer(value *BufferApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
-	b.Buffer = value
-	return b
-}
-
 // WithTimeouts sets the Timeouts field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Timeouts field is set to the value of the last call.
@@ -150,10 +144,39 @@ func (b *TrafficPolicySpecApplyConfiguration) WithRetry(value *RetryApplyConfigu
 	return b
 }
 
-// WithRBAC sets the RBAC field in the declarative configuration to the given value
+// WithDirectResponse sets the DirectResponse field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RBAC field is set to the value of the last call.
-func (b *TrafficPolicySpecApplyConfiguration) WithRBAC(value *RBACApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
-	b.RBAC = value
+// If called multiple times, the DirectResponse field is set to the value of the last call.
+func (b *TrafficPolicySpecApplyConfiguration) WithDirectResponse(value *DirectResponseApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
+	b.DirectResponse = value
+	return b
+}
+
+// WithAuthorization sets the Authorization field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Authorization field is set to the value of the last call.
+func (b *TrafficPolicySpecApplyConfiguration) WithAuthorization(value *AuthorizationApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
+	b.Authorization = value
+	return b
+}
+
+// WithAccessLog adds the given value to the AccessLog field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AccessLog field.
+func (b *TrafficPolicySpecApplyConfiguration) WithAccessLog(values ...*AccessLogApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAccessLog")
+		}
+		b.AccessLog = append(b.AccessLog, *values[i])
+	}
+	return b
+}
+
+// WithTracing sets the Tracing field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Tracing field is set to the value of the last call.
+func (b *TrafficPolicySpecApplyConfiguration) WithTracing(value *TracingApplyConfiguration) *TrafficPolicySpecApplyConfiguration {
+	b.Tracing = value
 	return b
 }

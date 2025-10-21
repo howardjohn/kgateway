@@ -58,41 +58,43 @@ type FrontendPolicySpec struct {
 	// +kubebuilder:validation:XValidation:rule="self.all(r, r.kind == 'Gateway' && (!has(r.group) || r.group == 'gateway.networking.k8s.io'))",message="targetSelectors may only reference Gateway resources"
 	TargetSelectors []LocalPolicyTargetSelector `json:"targetSelectors,omitempty"`
 
-	HTTP FrontendHTTP
-	TLS FrontendTLS
-	TCP FrontendTCP
+	HTTP *FrontendHTTP `json:"http,omitempty"`
+	TLS  *FrontendTLS  `json:"tls,omitempty"`
+	TCP  *FrontendTCP  `json:"tcp,omitempty"`
 }
 
 type FrontendTCP struct {
-	KeepAlive TCPKeepalive
+	KeepAlive *TCPKeepalive `json:"keepAlive,omitempty"`
 }
+
 type FrontendTLS struct {
-	HandshakeTimeout       time.Duration  `json:"handshake_timeout"`
+	HandshakeTimeout time.Duration `json:"handshakeTimeout"`
 
 	// TODO: mirror the tuneables on BackendTLS
 }
+
 type FrontendHTTP struct {
-	MaxBufferSize             int            `json:"max_buffer_size"`
+	MaxBufferSize int `json:"maxBufferSize"`
 
-	HTTP1MaxHeaders           *int           `json:"http1_max_headers,omitempty"`
-	HTTP1IdleTimeout          time.Duration  `json:"http1_idle_timeout"`
+	HTTP1MaxHeaders  *int          `json:"http1MaxHeaders,omitempty"`
+	HTTP1IdleTimeout time.Duration `json:"http1IdleTimeout"`
 
-	HTTP2WindowSize           *uint32        `json:"http2_window_size,omitempty"`
-	HTTP2ConnectionWindowSize *uint32        `json:"http2_connection_window_size,omitempty"`
-	HTTP2FrameSize            *uint32        `json:"http2_frame_size,omitempty"`
-	HTTP2KeepaliveInterval    *time.Duration `json:"http2_keepalive_interval,omitempty"`
-	HTTP2KeepaliveTimeout     *time.Duration `json:"http2_keepalive_timeout,omitempty"`
+	HTTP2WindowSize           *uint32        `json:"http2WindowSize,omitempty"`
+	HTTP2ConnectionWindowSize *uint32        `json:"http2ConnectionWindowSize,omitempty"`
+	HTTP2FrameSize            *uint32        `json:"http2FrameSize,omitempty"`
+	HTTP2KeepaliveInterval    *time.Duration `json:"http2KeepaliveInterval,omitempty"`
+	HTTP2KeepaliveTimeout     *time.Duration `json:"http2KeepaliveTimeout,omitempty"`
 }
 
 // AccessLog represents the top-level access log configuration.
 type AccessLog struct {
 	// Filter access logs configuration
-	Filter CELExpression `json:"filter,omitempty"`
+	Filter CELExpression   `json:"filter,omitempty"`
 	Fields AccessLogFields `json:"fields,omitempty"`
 }
 type AccessLogFields struct {
-	Remove []string
-	Add map[string]CELExpression
+	Remove []string `json:"remove,omitempty"`
+	Add    map[string]CELExpression `json:"add,omitempty"`
 }
 
 // FileSink represents the file sink configuration for access logs.
@@ -229,14 +231,10 @@ type Tracing struct {
 
 	// Target percentage of requests managed by this HTTP connection manager that will be force traced if the x-client-trace-id header is set. Defaults to 100%
 	// +optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=100
 	ClientSampling CELExpression `json:"clientSampling,omitempty"`
 
 	// Target percentage of requests managed by this HTTP connection manager that will be randomly selected for trace generation, if not requested by the client or not forced. Defaults to 100%
 	// +optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=100
 	RandomSampling CELExpression `json:"randomSampling,omitempty"`
 
 	// A list of attributes with a unique name to create attributes for the active span.

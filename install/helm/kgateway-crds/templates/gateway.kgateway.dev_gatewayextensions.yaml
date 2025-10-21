@@ -55,12 +55,6 @@ spec:
               extAuth:
                 description: ExtAuth configuration for ExtAuth extension type.
                 properties:
-                  clearRouteCache:
-                    default: false
-                    description: |-
-                      ClearRouteCache determines if the route cache should be cleared to allow the
-                      external authentication service to correctly affect routing decisions.
-                    type: boolean
                   failOpen:
                     default: false
                     description: |-
@@ -222,12 +216,6 @@ spec:
                     required:
                     - backendRef
                     type: object
-                  statPrefix:
-                    description: |-
-                      StatPrefix is an optional prefix to include when emitting stats from the extauthz filter,
-                      enabling different instances of the filter to have unique stats.
-                    minLength: 1
-                    type: string
                   statusOnError:
                     default: 403
                     description: |-
@@ -435,16 +423,6 @@ spec:
                     required:
                     - backendRef
                     type: object
-                  maxMessageTimeout:
-                    description: |-
-                      MaxMessageTimeout specifies the upper bound of override_message_timeout that may be sent from the external processing server.
-                      The default value 0, which effectively disables the override_message_timeout API.
-                    type: string
-                    x-kubernetes-validations:
-                    - message: invalid timeout value
-                      rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
-                    - message: timeout must be at least 1ms.
-                      rule: duration(self) >= duration('1ms')
                   messageTimeout:
                     description: MessageTimeout is the timeout for each message sent
                       to the external processing server.
@@ -454,109 +432,6 @@ spec:
                       rule: matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')
                     - message: timeout must be at least 1ms.
                       rule: duration(self) >= duration('1ms')
-                  metadataOptions:
-                    description: |-
-                      MetadataOptions allows configuring metadata namespaces to forwarded or received from the external
-                      processing server.
-                    properties:
-                      forwarding:
-                        description: Forwarding defines the typed or untyped dynamic
-                          metadata namespaces to forward to the external processing
-                          server.
-                        properties:
-                          typed:
-                            items:
-                              type: string
-                            minItems: 1
-                            type: array
-                          untyped:
-                            items:
-                              type: string
-                            minItems: 1
-                            type: array
-                        type: object
-                    type: object
-                  processingMode:
-                    description: ProcessingMode defines how the filter should interact
-                      with the request/response streams.
-                    properties:
-                      requestBodyMode:
-                        default: NONE
-                        description: RequestBodyMode determines how to handle the
-                          request body
-                        enum:
-                        - NONE
-                        - STREAMED
-                        - BUFFERED
-                        - BUFFERED_PARTIAL
-                        - FULL_DUPLEX_STREAMED
-                        type: string
-                      requestHeaderMode:
-                        default: SEND
-                        description: RequestHeaderMode determines how to handle the
-                          request headers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      requestTrailerMode:
-                        default: SKIP
-                        description: RequestTrailerMode determines how to handle the
-                          request trailers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      responseBodyMode:
-                        default: NONE
-                        description: ResponseBodyMode determines how to handle the
-                          response body
-                        enum:
-                        - NONE
-                        - STREAMED
-                        - BUFFERED
-                        - BUFFERED_PARTIAL
-                        - FULL_DUPLEX_STREAMED
-                        type: string
-                      responseHeaderMode:
-                        default: SEND
-                        description: ResponseHeaderMode determines how to handle the
-                          response headers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                      responseTrailerMode:
-                        default: SKIP
-                        description: ResponseTrailerMode determines how to handle
-                          the response trailers
-                        enum:
-                        - DEFAULT
-                        - SEND
-                        - SKIP
-                        type: string
-                    type: object
-                  routeCacheAction:
-                    default: FromResponse
-                    description: |-
-                      RouteCacheAction describes the route cache action to be taken when an
-                      external processor response is received in response to request headers.
-                      The default behavior is "FromResponse" which will only clear the route cache when
-                      an external processing response has the clear_route_cache field set.
-                    enum:
-                    - FromResponse
-                    - Clear
-                    - Retain
-                    type: string
-                  statPrefix:
-                    description: |-
-                      StatPrefix is an optional prefix to include when emitting stats from the extproc filter,
-                      enabling different instances of the filter to have unique stats.
-                    minLength: 1
-                    type: string
                 required:
                 - grpcService
                 type: object
@@ -754,16 +629,6 @@ spec:
                 - domain
                 - grpcService
                 type: object
-              type:
-                description: Type indicates the type of the GatewayExtension to be
-                  used.
-                enum:
-                - ExtAuth
-                - ExtProc
-                - RateLimit
-                type: string
-            required:
-            - type
             type: object
             x-kubernetes-validations:
             - message: ExtAuth must be set when type is ExtAuth

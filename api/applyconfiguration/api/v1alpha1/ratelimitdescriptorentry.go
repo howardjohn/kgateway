@@ -9,9 +9,8 @@ import (
 // RateLimitDescriptorEntryApplyConfiguration represents a declarative configuration of the RateLimitDescriptorEntry type for use
 // with apply.
 type RateLimitDescriptorEntryApplyConfiguration struct {
-	Type    *apiv1alpha1.RateLimitDescriptorEntryType          `json:"type,omitempty"`
-	Generic *RateLimitDescriptorEntryGenericApplyConfiguration `json:"generic,omitempty"`
-	Header  *string                                            `json:"header,omitempty"`
+	Key   *string                    `json:"key,omitempty"`
+	Value *apiv1alpha1.CELExpression `json:"value,omitempty"`
 }
 
 // RateLimitDescriptorEntryApplyConfiguration constructs a declarative configuration of the RateLimitDescriptorEntry type for use with
@@ -20,26 +19,18 @@ func RateLimitDescriptorEntry() *RateLimitDescriptorEntryApplyConfiguration {
 	return &RateLimitDescriptorEntryApplyConfiguration{}
 }
 
-// WithType sets the Type field in the declarative configuration to the given value
+// WithKey sets the Key field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Type field is set to the value of the last call.
-func (b *RateLimitDescriptorEntryApplyConfiguration) WithType(value apiv1alpha1.RateLimitDescriptorEntryType) *RateLimitDescriptorEntryApplyConfiguration {
-	b.Type = &value
+// If called multiple times, the Key field is set to the value of the last call.
+func (b *RateLimitDescriptorEntryApplyConfiguration) WithKey(value string) *RateLimitDescriptorEntryApplyConfiguration {
+	b.Key = &value
 	return b
 }
 
-// WithGeneric sets the Generic field in the declarative configuration to the given value
+// WithValue sets the Value field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Generic field is set to the value of the last call.
-func (b *RateLimitDescriptorEntryApplyConfiguration) WithGeneric(value *RateLimitDescriptorEntryGenericApplyConfiguration) *RateLimitDescriptorEntryApplyConfiguration {
-	b.Generic = value
-	return b
-}
-
-// WithHeader sets the Header field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Header field is set to the value of the last call.
-func (b *RateLimitDescriptorEntryApplyConfiguration) WithHeader(value string) *RateLimitDescriptorEntryApplyConfiguration {
-	b.Header = &value
+// If called multiple times, the Value field is set to the value of the last call.
+func (b *RateLimitDescriptorEntryApplyConfiguration) WithValue(value apiv1alpha1.CELExpression) *RateLimitDescriptorEntryApplyConfiguration {
+	b.Value = &value
 	return b
 }

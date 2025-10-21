@@ -9,9 +9,8 @@ import (
 // ExtProcPolicyApplyConfiguration represents a declarative configuration of the ExtProcPolicy type for use
 // with apply.
 type ExtProcPolicyApplyConfiguration struct {
-	ExtensionRef   *NamespacedObjectReferenceApplyConfiguration `json:"extensionRef,omitempty"`
-	ProcessingMode *ProcessingModeApplyConfiguration            `json:"processingMode,omitempty"`
-	Disable        *apiv1alpha1.PolicyDisable                   `json:"disable,omitempty"`
+	ExtensionRef *NamespacedObjectReferenceApplyConfiguration `json:"extensionRef,omitempty"`
+	Disable      *apiv1alpha1.PolicyDisable                   `json:"disable,omitempty"`
 }
 
 // ExtProcPolicyApplyConfiguration constructs a declarative configuration of the ExtProcPolicy type for use with
@@ -25,14 +24,6 @@ func ExtProcPolicy() *ExtProcPolicyApplyConfiguration {
 // If called multiple times, the ExtensionRef field is set to the value of the last call.
 func (b *ExtProcPolicyApplyConfiguration) WithExtensionRef(value *NamespacedObjectReferenceApplyConfiguration) *ExtProcPolicyApplyConfiguration {
 	b.ExtensionRef = value
-	return b
-}
-
-// WithProcessingMode sets the ProcessingMode field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the ProcessingMode field is set to the value of the last call.
-func (b *ExtProcPolicyApplyConfiguration) WithProcessingMode(value *ProcessingModeApplyConfiguration) *ExtProcPolicyApplyConfiguration {
-	b.ProcessingMode = value
 	return b
 }
 

@@ -3,6 +3,7 @@
 package v1alpha1
 
 import (
+	apiv1alpha1 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1"
 	v1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
@@ -30,8 +31,8 @@ func (b *NamedLLMProviderApplyConfiguration) WithName(value v1.SectionName) *Nam
 // WithOpenAI sets the OpenAI field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OpenAI field is set to the value of the last call.
-func (b *NamedLLMProviderApplyConfiguration) WithOpenAI(value *OpenAIConfigApplyConfiguration) *NamedLLMProviderApplyConfiguration {
-	b.LLMProviderApplyConfiguration.OpenAI = value
+func (b *NamedLLMProviderApplyConfiguration) WithOpenAI(value apiv1alpha1.OpenAIConfig) *NamedLLMProviderApplyConfiguration {
+	b.LLMProviderApplyConfiguration.OpenAI = &value
 	return b
 }
 
@@ -99,10 +100,16 @@ func (b *NamedLLMProviderApplyConfiguration) WithPath(value *PathOverrideApplyCo
 	return b
 }
 
-// WithAuthHeader sets the AuthHeader field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the AuthHeader field is set to the value of the last call.
-func (b *NamedLLMProviderApplyConfiguration) WithAuthHeader(value *AuthHeaderApplyConfiguration) *NamedLLMProviderApplyConfiguration {
-	b.LLMProviderApplyConfiguration.AuthHeader = value
+// WithRoutes puts the entries into the Routes field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, the entries provided by each call will be put on the Routes field,
+// overwriting an existing map entries in Routes field with the same key.
+func (b *NamedLLMProviderApplyConfiguration) WithRoutes(entries map[string]apiv1alpha1.RouteType) *NamedLLMProviderApplyConfiguration {
+	if b.LLMProviderApplyConfiguration.Routes == nil && len(entries) > 0 {
+		b.LLMProviderApplyConfiguration.Routes = make(map[string]apiv1alpha1.RouteType, len(entries))
+	}
+	for k, v := range entries {
+		b.LLMProviderApplyConfiguration.Routes[k] = v
+	}
 	return b
 }

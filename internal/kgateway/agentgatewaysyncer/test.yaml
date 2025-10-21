@@ -1,0 +1,19 @@
+kind: AgentgatewayPolicy
+spec:
+  targetRefs:
+    - name: my-gw
+      kind: Gateway
+    - name: my-be
+      kind: Backend
+  backend:
+    tls:
+      secret: my-cert
+  traffic:
+    extAuthz:
+      ref: my-extauth.svc
+  frontend:
+    buffer: 512kb
+
+AgentgatewayPolicy
+AgentGatewayExtension
+AgentBackend
