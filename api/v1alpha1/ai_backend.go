@@ -92,14 +92,33 @@ type LLMProvider struct {
 	// +optional
 	Path *PathOverride `json:"path,omitempty"`
 
-	// AuthHeader specifies how the Authorization header is set in the request sent to the LLM provider.
-	// Allows changing the header name and/or the prefix (e.g., "Bearer").
-	// Note: Not all LLM providers use the Authorization header and prefix.
-	// For example, OpenAI uses header: "Authorization" and prefix: "Bearer" But Azure OpenAI uses header: "api-key"
-	// and no Bearer.
-	AuthHeader *AuthHeader `json:"authHeader,omitempty"`
+
+	// Routes defines how to identify the type of traffic to handle.
+	// The keys are URL path suffixes matched using ends-with comparison (e.g., "/v1/chat/completions").
+	// The special "*" wildcard matches any path.
+	// If not specified, all traffic defaults to "completions" type.
+	// +optional
+	Routes map[string]RouteType `json:"routes,omitempty"`
 }
 
+// RouteType specifies how the AI gateway should process incoming requests
+// based on the URL path and the API format expected.
+// +kubebuilder:validation:Enum=completions;messages;models;passthrough
+type RouteType string
+
+const (
+	// RouteTypeCompletions processes OpenAI /v1/chat/completions format requests
+	RouteTypeCompletions RouteType = "completions"
+
+	// RouteTypeMessages processes Anthropic /v1/messages format requests
+	RouteTypeMessages RouteType = "messages"
+
+	// RouteTypeModels handles /v1/models endpoint (returns available models)
+	RouteTypeModels RouteType = "models"
+
+	// RouteTypePassthrough sends requests to upstream as-is without LLM processing
+	RouteTypePassthrough RouteType = "passthrough"
+)
 // NamedLLMProvider wraps an LLMProvider with a name.
 type NamedLLMProvider struct {
 	// Name of the provider. Policies can target this provider by name.
@@ -173,24 +192,10 @@ type SingleAuthToken struct {
 
 // OpenAIConfig settings for the [OpenAI](https://platform.openai.com/docs/api-reference/streaming) LLM provider.
 type OpenAIConfig struct {
-	// The authorization token that the AI gateway uses to access the OpenAI API.
-	// This token is automatically sent in the `Authorization` header of the
-	// request and prefixed with `Bearer`.
-	// +required
-	AuthToken SingleAuthToken `json:"authToken"`
-	// Optional: Override the model name, such as `gpt-4o-mini`.
-	// If unset, the model name is taken from the request.
-	// This setting can be useful when setting up model failover within the same LLM provider.
-	Model *string `json:"model,omitempty"`
 }
 
 // AzureOpenAIConfig settings for the [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/) LLM provider.
 type AzureOpenAIConfig struct {
-	// The authorization token that the AI gateway uses to access the Azure OpenAI API.
-	// This token is automatically sent in the `api-key` header of the request.
-	// +required
-	AuthToken SingleAuthToken `json:"authToken"`
-
 	// The endpoint for the Azure OpenAI API to use, such as `my-endpoint.openai.azure.com`.
 	// If the scheme is included, it is stripped.
 	// +required
@@ -212,16 +217,6 @@ type AzureOpenAIConfig struct {
 
 // GeminiConfig settings for the [Gemini](https://ai.google.dev/gemini-api/docs) LLM provider.
 type GeminiConfig struct {
-	// The authorization token that the AI gateway uses to access the Gemini API.
-	// This token is automatically sent in the `key` query parameter of the request.
-	// +required
-	AuthToken SingleAuthToken `json:"authToken"`
-
-	// The Gemini model to use.
-	// For more information, see the [Gemini models docs](https://ai.google.dev/gemini-api/docs/models/gemini).
-	// +required
-	Model string `json:"model"`
-
 	// The version of the Gemini API to use.
 	// For more information, see the [Gemini API version docs](https://ai.google.dev/gemini-api/docs/api-versions).
 	// +required
@@ -237,17 +232,6 @@ const GOOGLE Publisher = "GOOGLE"
 // To find the values for the project ID, project location, and publisher, you can check the fields of an API request, such as
 // `https://{LOCATION}-aiplatform.googleapis.com/{VERSION}/projects/{PROJECT_ID}/locations/{LOCATION}/publishers/{PROVIDER}/<model-path>`.
 type VertexAIConfig struct {
-	// The authorization token that the AI gateway uses to access the Vertex AI API.
-	// This token is automatically sent in the `key` header of the request.
-	// +required
-	AuthToken SingleAuthToken `json:"authToken"`
-
-	// The Vertex AI model to use.
-	// For more information, see the [Vertex AI model docs](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models).
-	// +required
-	// +kubebuilder:validation:MinLength=1
-	Model string `json:"model"`
-
 	// The version of the Vertex AI API to use.
 	// For more information, see the [Vertex AI API reference](https://cloud.google.com/vertex-ai/docs/reference#versions).
 	// +required
@@ -274,40 +258,12 @@ type VertexAIConfig struct {
 
 // AnthropicConfig settings for the [Anthropic](https://docs.anthropic.com/en/release-notes/api) LLM provider.
 type AnthropicConfig struct {
-	// The authorization token that the AI gateway uses to access the Anthropic API.
-	// This token is automatically sent in the `x-api-key` header of the request.
-	// +required
-	AuthToken SingleAuthToken `json:"authToken"`
 	// Optional: A version header to pass to the Anthropic API.
 	// For more information, see the [Anthropic API versioning docs](https://docs.anthropic.com/en/api/versioning).
 	Version string `json:"apiVersion,omitempty"`
-	// Optional: Override the model name.
-	// If unset, the model name is taken from the request.
-	// This setting can be useful when testing model failover scenarios.
-	Model *string `json:"model,omitempty"`
 }
 
 type BedrockConfig struct {
-	// Auth specifies an explicit AWS authentication method for the backend.
-	// When omitted, the following credential providers are tried in order, stopping when one
-	// of them returns an access key ID and a secret access key (the session token is optional):
-	// 1. Environment variables: when the environment variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN are set.
-	// 2. AssumeRoleWithWebIdentity API call: when the environment variables AWS_WEB_IDENTITY_TOKEN_FILE and AWS_ROLE_ARN are set.
-	// 3. EKS Pod Identity: when the environment variable AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE is set.
-	//
-	// See the Envoy docs for more info:
-	// https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/aws_request_signing_filter#credentials
-	//
-	// +optional
-	Auth *AwsAuth `json:"auth,omitempty"`
-
-	// Optional: Override the model ID.
-	// If unset, the model is taken from the request.
-	// See <https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html>
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	Model *string `json:"model,omitempty"`
-
 	// Region is the AWS region to use for the backend.
 	// Defaults to us-east-1 if not specified.
 	// +optional
@@ -320,7 +276,8 @@ type BedrockConfig struct {
 	// Guardrail configures the Guardrail policy to use for the backend. See <https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html>
 	// If not specified, the AWS Guardrail policy will not be used.
 	// +optional
-	Guardrail *AWSGuardrailConfig `json:"guardrail,omitempty"`
+	// Moved to policy
+	//Guardrail *AWSGuardrailConfig `json:"guardrail,omitempty"`
 }
 
 type AWSGuardrailConfig struct {

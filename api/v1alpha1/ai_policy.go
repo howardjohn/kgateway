@@ -76,16 +76,6 @@ type AIPromptEnrichment struct {
 	Append []Message `json:"append,omitempty"`
 }
 
-// RouteType is the type of route to the LLM provider API.
-type RouteType string
-
-const (
-	// The LLM generates the full response before responding to a client.
-	CHAT RouteType = "CHAT"
-
-	// Stream responses to a client, which allows the LLM to stream out tokens as they are generated.
-	CHAT_STREAMING RouteType = "CHAT_STREAMING"
-)
 
 // An entry for a message to prepend or append to each prompt.
 type Message struct {
@@ -93,6 +83,7 @@ type Message struct {
 	// LLM provider model, such as `SYSTEM` or `USER` in the OpenAI API.
 	Role string `json:"role"`
 
+	// TODO: LLMs are not just accepting content as a string
 	// String content of the message.
 	Content string `json:"content"`
 }
@@ -316,12 +307,8 @@ type FieldDefault struct {
 	Field string `json:"field"`
 
 	// The field default value, which can be any JSON Data Type.
+	// TODO: CEL expression?
+	// TODO: make it an json.RawValue
 	// +kubebuilder:validation:MinLength=1
 	Value string `json:"value"`
-
-	// Whether to override the field's value if it already exists.
-	// Defaults to false.
-	// +optional
-	// +kubebuilder:default=false
-	Override bool `json:"override,omitempty"`
 }

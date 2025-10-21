@@ -23,6 +23,7 @@ type GatewayParameters struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// I didn't touch this but we need to change ~everything.
 	Spec   GatewayParametersSpec   `json:"spec,omitempty"`
 	Status GatewayParametersStatus `json:"status,omitempty"`
 }

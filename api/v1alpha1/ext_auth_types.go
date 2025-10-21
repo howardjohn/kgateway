@@ -63,11 +63,7 @@ type ExtAuthProvider struct {
 	// +kubebuilder:default=false
 	FailOpen bool `json:"failOpen,omitempty"`
 
-	// ClearRouteCache determines if the route cache should be cleared to allow the
-	// external authentication service to correctly affect routing decisions.
-	// +optional
-	// +kubebuilder:default=false
-	ClearRouteCache bool `json:"clearRouteCache,omitempty"`
+	// TODO: not sure why these are here *and* on TrafficPolicy.
 
 	// WithRequestBody allows the request body to be buffered and sent to the auth service.
 	// Warning: buffering has implications for streaming and therefore performance.
@@ -82,10 +78,4 @@ type ExtAuthProvider struct {
 	// +kubebuilder:validation:Minimum=100
 	// +kubebuilder:validation:Maximum=511
 	StatusOnError int32 `json:"statusOnError,omitempty"`
-
-	// StatPrefix is an optional prefix to include when emitting stats from the extauthz filter,
-	// enabling different instances of the filter to have unique stats.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	StatPrefix *string `json:"statPrefix,omitempty"`
 }

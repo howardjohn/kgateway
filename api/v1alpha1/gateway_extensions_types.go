@@ -32,12 +32,6 @@ type GatewayExtension struct {
 // +kubebuilder:validation:XValidation:message="ExtProc must not be set when type is not ExtProc",rule="self.type == 'ExtProc' || !has(self.extProc)"
 // +kubebuilder:validation:XValidation:message="RateLimit must not be set when type is not RateLimit",rule="self.type == 'RateLimit' || !has(self.rateLimit)"
 type GatewayExtensionSpec struct {
-	// Type indicates the type of the GatewayExtension to be used.
-	// +unionDiscriminator
-	// +kubebuilder:validation:Enum=ExtAuth;ExtProc;RateLimit
-	// +required
-	Type GatewayExtensionType `json:"type"`
-
 	// ExtAuth configuration for ExtAuth extension type.
 	// +optional
 	// +unionMember:type=ExtAuth
@@ -71,6 +65,8 @@ type ExtGrpcService struct {
 	// BackendRef references the backend GRPC service.
 	// +required
 	BackendRef *gwv1.BackendRef `json:"backendRef"`
+
+	// TODO: should we allow all TrafficPolicy to apply here, such that we don't need to re-create the subset of fields?
 
 	// Authority is the authority header to use for the GRPC service.
 	// +optional

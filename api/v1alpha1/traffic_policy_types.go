@@ -37,12 +37,28 @@ type TrafficPolicyList struct {
 }
 
 // TrafficPolicySpec defines the desired state of a traffic policy.
-// Note: Backend attachment is only supported for agentgateway.
+//
+// TrafficPolicy can apply at two layers, based on the `phase` field:
+// * After a route is selected, but before a backend is selected.
+// * After a listener is selected, but before a route is selected.
+//
+// In either case, TrafficPolicy can target a Gateway, Listener, Route, or Route Rule.
+// If multiple policies exist for a given request, they are merged on a per-field basis, with precedence to the more precise policies (Route Rule > Gateway).
+//
 // +kubebuilder:validation:XValidation:rule="!has(self.autoHostRewrite) || ((has(self.targetRefs) && self.targetRefs.all(r, r.kind == 'HTTPRoute')) || (has(self.targetSelectors) && self.targetSelectors.all(r, r.kind == 'HTTPRoute')))",message="autoHostRewrite can only be used when targeting HTTPRoute resources"
 // +kubebuilder:validation:XValidation:rule="has(self.retry) && has(self.timeouts) ? (has(self.retry.perTryTimeout) && has(self.timeouts.request) ? duration(self.retry.perTryTimeout) < duration(self.timeouts.request) : true) : true",message="retry.perTryTimeout must be lesser than timeouts.request"
 // +kubebuilder:validation:XValidation:rule="has(self.retry) && has(self.targetRefs) ? self.targetRefs.all(r, (r.kind == 'Gateway' ? has(r.sectionName) : true )) : true",message="targetRefs[].sectionName must be set when targeting Gateway resources with retry policy"
 // +kubebuilder:validation:XValidation:rule="has(self.retry) && has(self.targetSelectors) ? self.targetSelectors.all(r, (r.kind == 'Gateway' ? has(r.sectionName) : true )) : true",message="targetSelectors[].sectionName must be set when targeting Gateway resources with retry policy"
 type TrafficPolicySpec struct {
+	// The phase to apply the TrafficPolicy to.
+	// If the phase is Gateway, the targetRef must be a Gateway or a Listener.
+	// Gateway is typically used only when a policy needs to influence the routing decision.
+	//
+	// Even when using Route mode, the policy can target the Gateway/Listener. This is syntax sugar for applying the policy to
+	// all routes under that Gateway/Listener, and follows the merging logic described above.
+	//
+	// +kubebuilder:validation:Enum=Gateway,Route
+	Phase string
 	// TargetRefs specifies the target resources by reference to attach the policy to.
 	// +optional
 	//
@@ -55,10 +71,6 @@ type TrafficPolicySpec struct {
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self.all(r, (r.kind == 'Gateway' || r.kind == 'HTTPRoute' || (r.kind == 'XListenerSet' && r.group == 'gateway.networking.x-k8s.io')) && (!has(r.group) || r.group == 'gateway.networking.k8s.io' || r.group == 'gateway.networking.x-k8s.io'))",message="targetSelectors may only reference Gateway, HTTPRoute, or XListenerSet resources"
 	TargetSelectors []LocalPolicyTargetSelectorWithSectionName `json:"targetSelectors,omitempty"`
-
-	// AI is used to configure AI-based policies for the policy.
-	// +optional
-	AI *AIPolicy `json:"ai,omitempty"`
 
 	// Transformation is used to mutate and transform requests and responses
 	// before forwarding them to the destination.
@@ -98,11 +110,6 @@ type TrafficPolicySpec struct {
 	// +optional
 	AutoHostRewrite *bool `json:"autoHostRewrite,omitempty"`
 
-	// Buffer can be used to set the maximum request size that will be buffered.
-	// Requests exceeding this size will return a 413 response.
-	// +optional
-	Buffer *Buffer `json:"buffer,omitempty"`
-
 	// Timeouts defines the timeouts for requests
 	// It is applicable to HTTPRoutes and ignored for other targeted kinds.
 	// +optional
@@ -113,6 +120,8 @@ type TrafficPolicySpec struct {
 	// +optional
 	Retry *Retry `json:"retry,omitempty"`
 
+	DirectResponse *DirectResponse `json:"directResponse,omitempty"`
+
 	// RBAC specifies the role-based access control configuration for the policy.
 	// This defines the rules for authorization based on roles and permissions.
 	// With an Envoy-based Gateway, RBAC policies applied at different attachment points in the configuration
@@ -120,7 +129,15 @@ type TrafficPolicySpec struct {
 	// attached to a route will override any RBAC policies applied to the gateway or listener. In contrast, an
 	// Agentgateway-based Gateway supports cumulative RBAC policies across different attachment points, such that
 	// an RBAC policy attached to a route augments policies applied to the gateway or listener without overriding them.
-	RBAC *RBAC `json:"rbac,omitempty"`
+	Authorization *Authorization `json:"authorization,omitempty"`
+	
+	// AccessLoggingConfig contains access logging configuration
+	// +kubebuilder:validation:MaxItems=16
+	AccessLog []AccessLog `json:"accessLog,omitempty"`
+
+	// Tracing contains various settings for OpenTelemetry tracer.
+	// +optional
+	Tracing *Tracing `json:"tracing,omitempty"`
 }
 
 // TransformationPolicy config is used to modify envoy behavior at a route level.
@@ -167,6 +184,7 @@ type Transform struct {
 }
 
 type Template string
+type CELExpression string
 
 // EnvoyHeaderName is the name of a header or pseudo header
 // Based on gateway api v1.Headername but allows a singular : at the start
@@ -185,7 +203,7 @@ type (
 		// Inja templates are supported for Envoy-based data planes only.
 		// CEL expressions are supported for agentgateway data plane only.
 		// The system will auto-detect the appropriate template format based on the data plane.
-		Value Template `json:"value,omitempty"`
+		Value CELExpression `json:"value,omitempty"`
 	}
 )
 
@@ -203,19 +221,8 @@ const (
 
 // BodyTransformation controls how the body should be parsed and transformed.
 type BodyTransformation struct {
-	// ParseAs defines what auto formatting should be applied to the body.
-	// This can make interacting with keys within a json body much easier if AsJson is selected.
-	// This field is only supported for kgateway (Envoy) data plane and is ignored by agentgateway.
-	// For agentgateway, use json(request.body) or json(response.body) directly in CEL expressions.
-	// +kubebuilder:default=AsString
-	ParseAs BodyParseBehavior `json:"parseAs"`
-
 	// Value is the template to apply to generate the output value for the body.
-	// Inja templates are supported for Envoy-based data planes only.
-	// CEL expressions are supported for agentgateway data plane only.
-	// The system will auto-detect the appropriate template format based on the data plane.
-	// +optional
-	Value *Template `json:"value,omitempty"`
+	Value CELExpression `json:"value,omitempty"`
 }
 
 // RateLimit defines a rate limiting policy.
@@ -234,6 +241,7 @@ type RateLimit struct {
 type LocalRateLimitPolicy struct {
 	// TokenBucket represents the configuration for a token bucket local rate-limiting mechanism.
 	// It defines the parameters for controlling the rate at which requests are allowed.
+	// TODO: rework this to not use TokenBucket and just use simple quotas like "100 RPS"
 	// +optional
 	TokenBucket *TokenBucket `json:"tokenBucket,omitempty"`
 }
@@ -241,6 +249,7 @@ type LocalRateLimitPolicy struct {
 // TokenBucket defines the configuration for a token bucket rate-limiting mechanism.
 // It controls the rate at which tokens are generated and consumed for a specific operation.
 type TokenBucket struct {
+
 	// MaxTokens specifies the maximum number of tokens that the bucket can hold.
 	// This value must be greater than or equal to 1.
 	// It determines the burst capacity of the rate limiter.
@@ -311,33 +320,15 @@ const (
 // Only one entry type may be specified.
 // +kubebuilder:validation:XValidation:message="exactly one entry type must be specified",rule="(has(self.type) && (self.type == 'Generic' && has(self.generic) && !has(self.header)) || (self.type == 'Header' && has(self.header) && !has(self.generic)) || (self.type == 'RemoteAddress' && !has(self.generic) && !has(self.header)) || (self.type == 'Path' && !has(self.generic) && !has(self.header)))"
 type RateLimitDescriptorEntry struct {
-	// Type specifies what kind of rate limit descriptor entry this is.
-	// +required
-	Type RateLimitDescriptorEntryType `json:"type"`
-
-	// Generic contains the configuration for a generic key-value descriptor entry.
-	// This field must be specified when Type is Generic.
-	// +optional
-	Generic *RateLimitDescriptorEntryGeneric `json:"generic,omitempty"`
-
-	// Header specifies a request header to extract the descriptor value from.
-	// This field must be specified when Type is Header.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	Header *string `json:"header,omitempty"`
-}
-
-// RateLimitDescriptorEntryGeneric defines a generic key-value descriptor entry.
-type RateLimitDescriptorEntryGeneric struct {
 	// Key is the name of this descriptor entry.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	Key string `json:"key"`
 
-	// Value is the static value for this descriptor entry.
+	// Value is the value for this descriptor entry.
 	// +required
 	// +kubebuilder:validation:MinLength=1
-	Value string `json:"value"`
+	Value CELExpression `json:"value"`
 }
 
 type CorsPolicy struct {
@@ -360,28 +351,12 @@ type CorsPolicy struct {
 //
 // +kubebuilder:validation:AtMostOneOf=percentageEnabled;percentageShadowed
 type CSRFPolicy struct {
-	// Specifies the percentage of requests for which the CSRF filter is enabled.
-	// Envoy: Supported
-	// Agentgateway: Not supported (ignored)
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=100
-	PercentageEnabled *int32 `json:"percentageEnabled,omitempty"`
-
-	// Specifies that CSRF policies will be evaluated and tracked, but not enforced.
-	// Envoy: Supported
-	// Agentgateway: Not supported (ignored)
-	// +optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=100
-	PercentageShadowed *int32 `json:"percentageShadowed,omitempty"`
-
 	// Specifies additional source origins that will be allowed in addition to the destination origin.
 	// Envoy: Supported
 	// Agentgateway: Supported
 	// +optional
 	// +kubebuilder:validation:MaxItems=16
-	AdditionalOrigins []StringMatcher `json:"additionalOrigins,omitempty"`
+	AdditionalOrigins []string `json:"additionalOrigins,omitempty"`
 }
 
 // HeaderModifiers can be used to define the policy to modify request and response headers.
@@ -420,52 +395,26 @@ type RetryOnCondition string
 //
 // +kubebuilder:validation:XValidation:rule="has(self.retryOn) || has(self.statusCodes)",message="retryOn or statusCodes must be set."
 type Retry struct {
-	// RetryOn specifies the conditions under which a retry should be attempted.
-	// +optional
-	//
-	// +kubebuilder:validation:MinItems=1
-	RetryOn []RetryOnCondition `json:"retryOn,omitempty"`
-
-	// Attempts specifies the number of retry attempts for a request.
-	// Defaults to 1 attempt if not set.
-	// A value of 0 effectively disables retries.
-	// +optional
-	//
-	// +kubebuilder:default=1
-	// +kubebuilder:validation:Minimum=0
-	Attempts int32 `json:"attempts,omitempty"` //nolint:kubeapilinter
-
-	// PerTryTimeout specifies the timeout per retry attempt (incliding the initial attempt).
-	// If a global timeout is configured on a route, this timeout must be less than the global
-	// route timeout.
-	// It is specified as a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "1s" or "500ms".
-	// +optional
-	//
-	// +kubebuilder:validation:XValidation:rule="matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')",message="invalid duration value"
-	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('1ms')",message="retry.perTryTimeout must be at least 1ms."
-	PerTryTimeout *metav1.Duration `json:"perTryTimeout,omitempty"`
-
-	// StatusCodes specifies the HTTP status codes in the range 400-599 that should be retried in addition
-	// to the conditions specified in RetryOn.
-	// +optional
-	//
-	// +kubebuilder:validation:MinItems=1
-	StatusCodes []gwv1.HTTPRouteRetryStatusCode `json:"statusCodes,omitempty"`
-
-	// BackoffBaseInterval specifies the base interval used with a fully jittered exponential back-off between retries.
-	// Defaults to 25ms if not set.
-	// Given a backoff base interval B and retry number N, the back-off for the retry is in the range [0, (2^N-1)*B].
-	// The backoff interval is capped at a max of 10 times the base interval.
-	// E.g., given a value of 25ms, the first retry will be delayed randomly by 0-24ms, the 2nd by 0-74ms,
-	// the 3rd by 0-174ms, and so on, and capped to a max of 10 times the base interval (250ms).
-	// +optional
-	//
-	// +kubebuilder:default="25ms"
-	// +kubebuilder:validation:XValidation:rule="matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')",message="invalid duration value"
-	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('1ms')",message="retry.backoffBaseInterval must be at least 1ms."
-	BackoffBaseInterval *metav1.Duration `json:"backoffBaseInterval,omitempty"`
+	gwv1.HTTPRouteRetry
 }
 
+// DirectResponseSpec describes the desired state of a DirectResponse.
+type DirectResponse struct {
+	// StatusCode defines the HTTP status code to return for this route.
+	//
+	// +required
+	// +kubebuilder:validation:Minimum=200
+	// +kubebuilder:validation:Maximum=599
+	StatusCode int32 `json:"status"`
+	// Body defines the content to be returned in the HTTP response body.
+	// The maximum length of the body is restricted to prevent excessively large responses.
+	// If this field is omitted, no body is included in the response.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
+	Body *string `json:"body,omitempty"`
+}
 type Timeouts struct {
 	// Request specifies a timeout for an individual request from the gateway to a backend.
 	// This spans between the point at which the entire downstream request (i.e. end-of-stream) has been

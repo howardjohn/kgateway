@@ -4,24 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:rbac:groups=gateway.kgateway.dev,resources=directresponses,verbs=get;list;watch
-// +kubebuilder:rbac:groups=gateway.kgateway.dev,resources=directresponses/status,verbs=get;update;patch
-
-// DirectResponse contains configuration for defining direct response routes.
-//
-// +genclient
-// +kubebuilder:object:root=true
-// +kubebuilder:metadata:labels={app=kgateway,app.kubernetes.io/name=kgateway}
-// +kubebuilder:resource:categories=kgateway
-// +kubebuilder:subresource:status
-type DirectResponse struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   DirectResponseSpec   `json:"spec,omitempty"`
-	Status DirectResponseStatus `json:"status,omitempty"`
-}
-
 // +kubebuilder:object:root=true
 type DirectResponseList struct {
 	metav1.TypeMeta `json:",inline"`
