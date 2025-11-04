@@ -416,10 +416,6 @@ type AgentJWTProvider struct {
 	Audiences []string `json:"audiences,omitempty"`
 	// TokenSource configures where to find the JWT of the current provider.
 	TokenSource *AgentJWTTokenSource `json:"tokenSource,omitempty"`
-	// ClaimsToHeaders is the list of claims to headers to be used for the JWT provider.
-	// Optionally set the claims from the JWT payload that you want to extract and add as headers
-	// to the request before the request is forwarded to the upstream destination.
-	ClaimsToHeaders []AgentJWTClaimToHeader `json:"claimsToHeaders,omitempty"`
 	// jwks defines the JSON Web Key Set used to validate the signature of the JWT.
 	JWKS AgentJWKS `json:"jwks"`
 }
@@ -468,18 +464,6 @@ type AgentHeaderSource struct {
 	// +kubebuilder:validation:MaxLength=2048
 	// +optional
 	Prefix *string `json:"prefix,omitempty"`
-}
-
-// JWTClaimToHeader allows copying verified claims to headers sent upstream
-type AgentJWTClaimToHeader struct {
-	// Name is the JWT claim name, for example, "sub".
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=2048
-	Name string `json:"name"`
-	// Header is the header the claim will be copied to, for example, "x-sub".
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=2048
-	Header string `json:"header"`
 }
 
 // +kubebuilder:validation:Enum=Strict;Optional
