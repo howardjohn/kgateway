@@ -414,6 +414,12 @@ type AgentJWTProvider struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=64
 	Audiences []string `json:"audiences,omitempty"`
+	// TokenSource configures where to find the JWT of the current provider.
+	TokenSource *AgentJWTTokenSource `json:"tokenSource,omitempty"`
+	// ClaimsToHeaders is the list of claims to headers to be used for the JWT provider.
+	// Optionally set the claims from the JWT payload that you want to extract and add as headers
+	// to the request before the request is forwarded to the upstream destination.
+	ClaimsToHeaders []AgentJWTClaimToHeader `json:"claimsToHeaders,omitempty"`
 	// jwks defines the JSON Web Key Set used to validate the signature of the JWT.
 	JWKS AgentJWKS `json:"jwks"`
 }
@@ -434,6 +440,46 @@ type AgentRemoteJWKS struct {
 	//
 	// Supported types: Service and Backend.
 	BackendRef gwv1.BackendObjectReference `json:"backendRef"`
+}
+
+// JWTTokenSource configures the source for the JWTToken
+type AgentJWTTokenSource struct {
+	// HeaderSource configures retrieving token from the headers
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +optional
+	HeaderSource []AgentHeaderSource `json:"headers,omitempty"`
+	// QueryParams configures retrieving token from these query params
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	// +optional
+	QueryParams []string `json:"queryParams,omitempty"`
+}
+
+// HeaderSource configures how to retrieve a JWT from a header
+type AgentHeaderSource struct {
+	// Header is the name of the header. for example, "Authorization"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	// +optional
+	Header *string `json:"header,omitempty"`
+	// Prefix before the token. for example, "Bearer "
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	// +optional
+	Prefix *string `json:"prefix,omitempty"`
+}
+
+// JWTClaimToHeader allows copying verified claims to headers sent upstream
+type AgentJWTClaimToHeader struct {
+	// Name is the JWT claim name, for example, "sub".
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	Name string `json:"name"`
+	// Header is the header the claim will be copied to, for example, "x-sub".
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	Header string `json:"header"`
 }
 
 // +kubebuilder:validation:Enum=Strict;Optional
