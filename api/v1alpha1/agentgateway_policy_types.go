@@ -432,6 +432,12 @@ type AgentJWKS struct {
 }
 
 type AgentRemoteJWKS struct {
+	// path component of jwks uri
+	Path string `json:"path"`
+	// +optional
+	// +kubebuilder:validation:XValidation:rule="matches(self, '^([0-9]{1,5}(h|m|s|ms)){1,4}$')",message="invalid duration value"
+	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('1m')",message="cacheDuration must be at least 1m."
+	CacheDuration *metav1.Duration `json:"cacheDuration,omitempty"`
 	// backendRef references the remote JWKS server to reach.
 	//
 	// Supported types: Service and Backend.
