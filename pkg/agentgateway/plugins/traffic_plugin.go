@@ -526,6 +526,7 @@ func processJWTAuthenticationPolicy(policy *v1alpha1.AgentgatewayPolicy, name st
 		}
 		if i := pp.JWKS.Inline; i != "" {
 			jp.JwksSource = &api.TrafficPolicySpec_JWTProvider_Inline{Inline: i}
+			p.Providers = append(p.Providers, jp)
 		}
 		if r := pp.JWKS.Remote; r != nil {
 			// TODO: this is not yet implemented and rejected by CEL
