@@ -7,6 +7,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/a2a"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/aibackend"
+	apikeyauth "github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/apikeyauthentication"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/basicauth"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/configmap"
 	"github.com/kgateway-dev/kgateway/v2/test/e2e/features/agentgateway/csrf"
@@ -34,6 +35,7 @@ func AgentgatewaySuiteRunner() e2e.SuiteRunner {
 	agentgatewaySuiteRunner.Register("AIBackend", aibackend.NewTestingSuite)
 	agentgatewaySuiteRunner.Register("ConfigMap", configmap.NewTestingSuite)
 	agentgatewaySuiteRunner.Register("BasicAuth", basicauth.NewTestingSuite)
+	agentgatewaySuiteRunner.Register("ApiKeyAuth", apikeyauth.NewTestingSuite)
 
 	return agentgatewaySuiteRunner
 }
