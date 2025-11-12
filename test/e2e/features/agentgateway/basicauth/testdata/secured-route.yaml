@@ -1,0 +1,54 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: route-secure
+spec:
+  parentRefs:
+    - name: super-gateway
+  hostnames:
+    - "secureroute.com"
+  rules:
+    - backendRefs:
+        - name: simple-svc
+          port: 8080
+---
+## On a route that is not part of the gw gateway opt in
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: secure-route-policy
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: route-secure
+  traffic:
+    basicAuthentication:
+      mode: Strict
+      realm: test
+      users:
+      - "alice:$apr1$LiS20QTs$m984dU6.2V3aPTWSfcWNP0" #alicepassword
+---
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: secure-route-with-secret-policy
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: route-secure
+  traffic:
+    basicAuthentication:
+      mode: Strict
+      realm: test
+      secretRef:
+        name: basic-auth-too
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: basic-auth-too
+stringData:
+  .htaccess: |
+    bob:$apr1$Em4RrUc7$gy3swtQHr/5pkuLEuaXPX/ #bobpassword
