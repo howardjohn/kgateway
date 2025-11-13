@@ -12,6 +12,7 @@ spec:
     - name: backend-0
       port: 8080
 ---
+# jwks were generated using test/e2e/testutils/jwt/jwt-generator.go
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:

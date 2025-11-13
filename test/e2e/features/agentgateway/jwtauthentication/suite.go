@@ -202,10 +202,14 @@ func (s *testingSuite) TearDownSuite() {
 func (s *testingSuite) TestRoutePolicy() {
 	s.setupTest([]string{insecureRouteManifest, secureRoutePolicyManifest}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
 
+	// verify unprotected route works
 	s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
+	// verify a provider with a single key in jwks works
 	s.assertResponse("secureroute.com", jwt1, http.StatusOK)
+	// verify a provider with multiple keys in jwks works
 	s.assertResponse("secureroute.com", jwt2, http.StatusOK)
 	s.assertResponse("secureroute.com", jwt3, http.StatusOK)
+	// verify invalid/missing tokens are caught
 	s.assertResponse("secureroute.com", "nosuchkey", http.StatusUnauthorized)
 	s.assertResponseWithoutAuth("secureroute.com", http.StatusUnauthorized)
 }
@@ -213,10 +217,13 @@ func (s *testingSuite) TestRoutePolicy() {
 func (s *testingSuite) TestGatewayPolicy() {
 	s.setupTest([]string{secureGWPolicyManifest}, []client.Object{secureGwRoute, secureGwPolicy})
 
+	// verify a provider with a single key in jwks works
 	s.assertResponse("securegateways.com", jwt1, http.StatusOK)
+	// verify a provider with multiple keys in jwks works
 	s.assertResponse("securegateways.com", jwt2, http.StatusOK)
 	s.assertResponse("securegateways.com", jwt3, http.StatusOK)
 	s.assertResponse("securegateways.com", "nosuchkey", http.StatusUnauthorized)
+	// verify invalid/missing tokens are caught
 	s.assertResponseWithoutAuth("securegateways.com", http.StatusUnauthorized)
 }
 
