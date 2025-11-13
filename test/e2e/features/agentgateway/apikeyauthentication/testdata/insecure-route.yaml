@@ -5,7 +5,7 @@ metadata:
   name: route-example-insecure
 spec:
   parentRefs:
-    - name: super-gateway-too
+    - name: super-gateway
   hostnames:
     - "insecureroute.com"
   rules:

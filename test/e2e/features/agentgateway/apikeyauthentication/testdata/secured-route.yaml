@@ -9,7 +9,7 @@ spec:
     - "secureroute.com"
   rules:
     - backendRefs:
-        - name: simple-svc
+        - name: backend-0
           port: 8080
 ---
 apiVersion: gateway.kgateway.dev/v1alpha1
