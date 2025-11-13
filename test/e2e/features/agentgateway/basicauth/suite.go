@@ -36,6 +36,10 @@ const (
 )
 
 var (
+	insecureRouteManifest     = getTestFile("insecure-route.yaml")
+	secureGwPolicyManifest    = getTestFile("secured-gateway-policy.yaml")
+	secureRoutePolicyManifest = getTestFile("secured-route.yaml")
+
 	// metadata for gateway - matches the name "super-gateway" from common.yaml
 	gateway = &gwv1.Gateway{
 		ObjectMeta: metav1.ObjectMeta{Name: "super-gateway", Namespace: namespace},
@@ -170,9 +174,6 @@ func (s *testingSuite) SetupSuite() {
 	s.commonManifests = []string{
 		testdefaults.CurlPodManifest,
 		getTestFile("common.yaml"),
-		getTestFile("insecure-route.yaml"),
-		getTestFile("secured-gateway-policy.yaml"),
-		getTestFile("secured-route.yaml"),
 		getTestFile("service.yaml"),
 	}
 	s.commonResources = []client.Object{
@@ -229,27 +230,36 @@ func (s *testingSuite) TearDownSuite() {
 }
 
 func (s *testingSuite) TestRoutePolicy() {
-	s.setupTest([]string{}, []client.Object{insecureRoute, secureRoute, secureRouteToo, secureRoutePolicy1, secureRoutePolicy2})
+	s.setupTest([]string{insecureRouteManifest, secureRoutePolicyManifest}, []client.Object{insecureRoute, secureRoute, secureRouteToo, secureRoutePolicy1, secureRoutePolicy2})
 
-	// TODO (dmitri-d) the below check is failing as there's a gw policy attached to the gw
-	//s.assertResponseWithoutAuth(kubeutils.ServiceFQDN(proxyObjectMeta), "insecureroute.com", http.StatusOK)
+	// test unprotected route works
+	s.assertResponseWithoutAuth(kubeutils.ServiceFQDN(proxyObjectMeta), "insecureroute.com", http.StatusOK)
+	// test inline username/password store
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", base64.StdEncoding.EncodeToString(([]byte)("alice:alicepassword")), http.StatusOK)
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", base64.StdEncoding.EncodeToString(([]byte)("bob:bobpassword")), http.StatusOK)
+	// test secret-based username/password store
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroutetoo.com", base64.StdEncoding.EncodeToString(([]byte)("eve:evepassword")), http.StatusOK)
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroutetoo.com", base64.StdEncoding.EncodeToString(([]byte)("mallory:mallorypassword")), http.StatusOK)
-	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", base64.StdEncoding.EncodeToString(([]byte)("trent:book")), http.StatusUnauthorized)
+	// test invalid username/password combinations
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", base64.StdEncoding.EncodeToString(([]byte)("alice:boom")), http.StatusUnauthorized)
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroutetoo.com", base64.StdEncoding.EncodeToString(([]byte)("eve:boom")), http.StatusUnauthorized)
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", base64.StdEncoding.EncodeToString(([]byte)("trent:boom")), http.StatusUnauthorized)
 	s.assertResponseWithoutAuth(kubeutils.ServiceFQDN(proxyObjectMeta), "secureroute.com", http.StatusUnauthorized)
 }
 
 func (s *testingSuite) TestGatewayPolicy() {
-	s.setupTest(nil, []client.Object{secureGwPolicySecret, secureGwRoute, secureGwRouteToo, secureGwPolicy1, secureGwPolicy2})
+	s.setupTest([]string{secureGwPolicyManifest}, []client.Object{secureGwPolicySecret, secureGwRoute, secureGwRouteToo, secureGwPolicy1, secureGwPolicy2})
 
+	// test inline user/password store
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", base64.StdEncoding.EncodeToString(([]byte)("alice:alicepassword")), http.StatusOK)
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", base64.StdEncoding.EncodeToString(([]byte)("bob:bobpassword")), http.StatusOK)
+	// test secret-based user/password store
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMetaToo), "securegatewaystoo.com", base64.StdEncoding.EncodeToString(([]byte)("eve:evepassword")), http.StatusOK)
 	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMetaToo), "securegatewaystoo.com", base64.StdEncoding.EncodeToString(([]byte)("mallory:mallorypassword")), http.StatusOK)
-	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", base64.StdEncoding.EncodeToString(([]byte)("trent:book")), http.StatusUnauthorized)
-	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMetaToo), "securegatewaystoo.com", base64.StdEncoding.EncodeToString(([]byte)("trent:book")), http.StatusUnauthorized)
+	// test invalid username/password combinations
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", base64.StdEncoding.EncodeToString(([]byte)("alice:boom")), http.StatusUnauthorized)
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", base64.StdEncoding.EncodeToString(([]byte)("trent:boom")), http.StatusUnauthorized)
+	s.assertResponse(kubeutils.ServiceFQDN(proxyObjectMetaToo), "securegatewaystoo.com", base64.StdEncoding.EncodeToString(([]byte)("trent:boom")), http.StatusUnauthorized)
 	s.assertResponseWithoutAuth(kubeutils.ServiceFQDN(proxyObjectMeta), "securegateways.com", http.StatusUnauthorized)
 	s.assertResponseWithoutAuth(kubeutils.ServiceFQDN(proxyObjectMetaToo), "securegatewaystoo.com", http.StatusUnauthorized)
 }

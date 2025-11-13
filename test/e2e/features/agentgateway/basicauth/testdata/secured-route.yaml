@@ -26,7 +26,6 @@ spec:
         - name: backend-0
           port: 8080
 ---
-## user alice:alicepassword
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
@@ -44,7 +43,6 @@ spec:
       - "alice:$apr1$SrcRE04W$bio6ASdFjG8ANvVHWgfr80"
       - "bob:$apr1$dNQyeFtD$xsHfBS/Bn5fbMLhjNlV1A/"
 ---
-## user bob:bobpassword
 apiVersion: gateway.kgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
