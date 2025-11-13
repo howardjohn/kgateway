@@ -35,6 +35,10 @@ const (
 )
 
 var (
+	insecureRouteManifest     = getTestFile("insecure-route.yaml")
+	secureGwPolicyManifest    = getTestFile("secured-gateway-policy.yaml")
+	secureRoutePolicyManifest = getTestFile("secured-route.yaml")
+
 	// metadata for gateway - matches the name "super-gateway" from common.yaml
 	gatewayObjectMeta = metav1.ObjectMeta{Name: "super-gateway", Namespace: namespace}
 	gateway           = &gwv1.Gateway{
@@ -130,9 +134,6 @@ func (s *testingSuite) SetupSuite() {
 	s.commonManifests = []string{
 		testdefaults.CurlPodManifest,
 		getTestFile("common.yaml"),
-		getTestFile("insecure-route.yaml"),
-		getTestFile("secured-gateway-policy.yaml"),
-		getTestFile("secured-route.yaml"),
 		getTestFile("service.yaml"),
 	}
 	s.commonResources = []client.Object{
@@ -189,20 +190,27 @@ func (s *testingSuite) TearDownSuite() {
 }
 
 func (s *testingSuite) TestRoutePolicy() {
-	s.setupTest([]string{}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
+	s.setupTest([]string{insecureRouteManifest, secureRoutePolicyManifest}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
 
-	//s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
+	// verify insecure route works
+	s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
+	// verify key without metadata works
 	s.assertResponse("secureroute.com", "k-1230", http.StatusOK)
+	// verify key with metadata works
 	s.assertResponse("secureroute.com", "k-4560", http.StatusOK)
+	// verify invalid keys are rejected
 	s.assertResponse("secureroute.com", "nosuchkey", http.StatusUnauthorized)
 	s.assertResponseWithoutAuth("secureroute.com", http.StatusUnauthorized)
 }
 
 func (s *testingSuite) TestGatewayPolicy() {
-	s.setupTest(nil, []client.Object{secureGwRoute, secureGwPolicy})
+	s.setupTest([]string{secureGwPolicyManifest}, []client.Object{secureGwRoute, secureGwPolicy})
 
+	// verify key without metadata works
 	s.assertResponse("securegateways.com", "k-123", http.StatusOK)
+	// verify key with metadata works
 	s.assertResponse("securegateways.com", "k-456", http.StatusOK)
+	// verify invalid keys are rejected
 	s.assertResponse("securegateways.com", "nosuchkey", http.StatusUnauthorized)
 	s.assertResponseWithoutAuth("securegateways.com", http.StatusUnauthorized)
 }
