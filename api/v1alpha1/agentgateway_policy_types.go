@@ -321,7 +321,7 @@ type AgentgatewayPolicyTraffic struct {
 	// PreRouting rules will merge and execute, then all PostRouting rules will merge and execute.
 	//
 	// If unset, this defaults to PostRouting.
-	Phase *PolicyPhase `json:"phase,omitempty"`
+	Phase *PolicyPhase `json:"phase,omitempty"` //nolint:kubeapilinter // false positive for the nophase sub-linter
 
 	// transformation is used to mutate and transform requests and responses
 	// before forwarding them to the destination.
@@ -611,6 +611,12 @@ type BackendAI struct {
 	// TODO: should this use 'overrides', and we add CEL conditionals?
 	// +kubebuilder:validation:MaxProperties=64
 	ModelAliases map[string]string `json:"modelAliases,omitempty"`
+
+	// PromptCaching enables automatic prompt caching for supported providers (AWS Bedrock).
+	// Reduces API costs by caching static content like system prompts and tool definitions.
+	// Only applicable for Bedrock Claude 3+ and Nova models.
+	// +optional
+	PromptCaching *PromptCachingConfig `json:"promptCaching,omitempty"`
 }
 
 // +kubebuilder:validation:AtLeastOneOf=authorization
