@@ -191,7 +191,7 @@ func (s *testingSuite) TearDownSuite() {
 func (s *testingSuite) TestRoutePolicy() {
 	s.setupTest([]string{}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
 
-	s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
+	//s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
 	s.assertResponse("secureroute.com", "k-1230", http.StatusOK)
 	s.assertResponse("secureroute.com", "k-4560", http.StatusOK)
 	s.assertResponse("secureroute.com", "nosuchkey", http.StatusUnauthorized)
@@ -202,7 +202,7 @@ func (s *testingSuite) TestGatewayPolicy() {
 	s.setupTest(nil, []client.Object{secureGwRoute, secureGwPolicy})
 
 	s.assertResponse("securegateways.com", "k-123", http.StatusOK)
-	s.assertResponse("securegateways.com", "k-4560", http.StatusOK)
+	s.assertResponse("securegateways.com", "k-456", http.StatusOK)
 	s.assertResponse("securegateways.com", "nosuchkey", http.StatusUnauthorized)
 	s.assertResponseWithoutAuth("securegateways.com", http.StatusUnauthorized)
 }

@@ -36,7 +36,7 @@ stringData:
     {
       "key": "k-1230",
       "metadata": {
-        "group": "sales",
+        "group": "sales"
       }
     }
   client2: "k-4560"
