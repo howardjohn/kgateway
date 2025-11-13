@@ -10,6 +10,6 @@ spec:
     - "insecureroute.com"
   rules:
     - backendRefs:
-        - name: simple-svc
+        - name: backend-0
           port: 8080
 

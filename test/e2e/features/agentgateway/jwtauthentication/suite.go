@@ -134,13 +134,16 @@ func NewTestingSuite(ctx context.Context, testInst *e2e.TestInstallation) suite.
 	}
 }
 
+var (
+	insecureRouteManifest     = getTestFile("insecure-route.yaml")
+	secureGWPolicyManifest    = getTestFile("secured-gateway-policy.yaml")
+	secureRoutePolicyManifest = getTestFile("secured-route.yaml")
+)
+
 func (s *testingSuite) SetupSuite() {
 	s.commonManifests = []string{
 		testdefaults.CurlPodManifest,
 		getTestFile("common.yaml"),
-		getTestFile("insecure-route.yaml"),
-		getTestFile("secured-gateway-policy.yaml"),
-		getTestFile("secured-route.yaml"),
 		getTestFile("service.yaml"),
 	}
 	s.commonResources = []client.Object{
@@ -197,9 +200,9 @@ func (s *testingSuite) TearDownSuite() {
 }
 
 func (s *testingSuite) TestRoutePolicy() {
-	s.setupTest([]string{}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
+	s.setupTest([]string{insecureRouteManifest, secureRoutePolicyManifest}, []client.Object{insecureRoute, secureRoute, secureRoutePolicy})
 
-	//s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
+	s.assertResponseWithoutAuth("insecureroute.com", http.StatusOK)
 	s.assertResponse("secureroute.com", jwt1, http.StatusOK)
 	s.assertResponse("secureroute.com", jwt2, http.StatusOK)
 	s.assertResponse("secureroute.com", jwt3, http.StatusOK)
@@ -208,7 +211,7 @@ func (s *testingSuite) TestRoutePolicy() {
 }
 
 func (s *testingSuite) TestGatewayPolicy() {
-	s.setupTest(nil, []client.Object{secureGwRoute, secureGwPolicy})
+	s.setupTest([]string{secureGWPolicyManifest}, []client.Object{secureGwRoute, secureGwPolicy})
 
 	s.assertResponse("securegateways.com", jwt1, http.StatusOK)
 	s.assertResponse("securegateways.com", jwt2, http.StatusOK)
