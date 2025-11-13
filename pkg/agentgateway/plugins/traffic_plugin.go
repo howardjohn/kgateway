@@ -628,13 +628,13 @@ func processAPIKeyAuthenticationPolicy(ctx PolicyCtx, policy *v1alpha1.Agentgate
 	if s := ak.SecretSelector; s != nil {
 		secrets = krt.Fetch(ctx.Krt, ctx.Collections.Secrets, krt.FilterLabel(s.MatchLabels), krt.FilterIndex(ctx.Collections.SecretsByNamespace, policy.Namespace))
 	}
-	var errors []error
+	var errs []error
 	for _, s := range secrets {
 		for k, v := range s.Data {
 			var ke APIKeyEntry
 			if err := json.Unmarshal(v, &ke); err != nil {
 				if bytes.TrimSpace(v)[0] == '{' {
-					errors = append(errors, fmt.Errorf("secret %v contains invalid key: %v", s.Name, k))
+					errs = append(errs, fmt.Errorf("secret %v contains invalid key %v: %w", s.Name, k, err))
 					continue
 				} else {
 					// A raw key entry without metadata
@@ -666,7 +666,7 @@ func processAPIKeyAuthenticationPolicy(ctx PolicyCtx, policy *v1alpha1.Agentgate
 		"agentgateway_policy", apiKeyPolicy.Name,
 		"target", target)
 
-	return []AgwPolicy{{Policy: apiKeyPolicy}}, nil
+	return []AgwPolicy{{Policy: apiKeyPolicy}}, errors.Join(errs...)
 }
 
 func processTimeoutPolicy(policy *v1alpha1.AgentgatewayPolicy, name string, target *api.PolicyTarget) []AgwPolicy {
