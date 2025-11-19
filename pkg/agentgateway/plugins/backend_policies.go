@@ -23,6 +23,7 @@ const (
 	backendTlsPolicySuffix       = ":backend-tls"
 	backendauthPolicySuffix      = ":backend-auth"
 	tlsPolicySuffix              = ":tls"
+	backendHttpPolicySuffix      = ":backend-http"
 	mcpAuthorizationPolicySuffix = ":mcp-authorization"
 )
 
@@ -186,8 +187,29 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 	return []AgwPolicy{{Policy: tlsPolicy}}, errors.Join(errs...)
 }
 func translateBackendHTTP(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, name string, target *api.PolicyTarget) ([]AgwPolicy, error) {
-	// TODO
-	return nil, nil
+	http := policy.Spec.Backend.HTTP
+
+	tlsPolicy := &api.Policy{
+		Name:   policy.Namespace + "/" + policy.Name + backendHttpPolicySuffix + attachmentName(target),
+		Target: target,
+		Kind: &api.Policy_Backend{
+			Backend: &api.BackendPolicySpec{
+				Kind: &api.BackendPolicySpec_htt{
+					BackendTls: &api.BackendPolicySpec_BackendTLS{
+						Root:     caCert,
+						Cert:     nil,
+						Key:      nil,
+						Insecure: insecure,
+						Hostname: hostname,
+					},
+				},
+			}},
+	}
+	logger.Debug("generated TLS policy",
+		"policy", policy.Name,
+		"agentgateway_policy", tlsPolicy.Name)
+
+	return []AgwPolicy{{Policy: pol}}, nil
 }
 
 func translateBackendMCPAuthorization(policy *v1alpha1.AgentgatewayPolicy, target *api.PolicyTarget) []AgwPolicy {
