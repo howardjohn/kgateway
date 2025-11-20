@@ -10,6 +10,7 @@ import (
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/ptr"
 	"istio.io/istio/pkg/slices"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -119,10 +120,35 @@ func translateBackendTCP(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, nam
 
 func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, target *api.PolicyTarget) ([]AgwPolicy, error) {
 	var errs []error
+	tls := policy.Spec.Backend.TLS
+
+	p := &api.BackendPolicySpec_BackendTLS{}
+
+	if len(tls.MtlsCertificateRef) > 0 {
+		// Currently we only support one, and enforce this in the API
+		mtls := tls.MtlsCertificateRef[0]
+		nn := types.NamespacedName{
+			Namespace: policy.Namespace,
+			Name:      mtls.Name,
+		}
+		scrt := ptr.Flatten(krt.FetchOne(ctx.Krt, ctx.Collections.Secrets, krt.FilterObjectName(nn)))
+		if scrt == nil {
+			errs = append(errs, fmt.Errorf("secret %s not found", nn))
+		} else {
+			if _, err := sslutils.ValidateTlsSecretData(nn.Name, nn.Namespace, scrt.Data); err != nil {
+				errs = append(errs, fmt.Errorf("secret %v contains invalid certificate: %v", nn, err))
+			}
+			p.Cert = wrapperspb.Bytes(scrt.Data[corev1.TLSCertKey])
+			p.Key = wrapperspb.Bytes(scrt.Data[corev1.TLSPrivateKeyKey])
+			if ca, f := scrt.Data[corev1.ServiceAccountRootCAKey]; f {
+				p.Root = wrapperspb.Bytes(ca)
+			}
+		}
+	}
 
 	// Build CA bundle from referenced ConfigMaps, if provided
-	var caCert *wrapperspb.BytesValue
-	if tls := policy.Spec.Backend.TLS; tls != nil && len(tls.CACertificateRefs) > 0 {
+	// If we were using mTLS, we may be overriding the perviously set p.Root -- this is intended
+	if len(tls.CACertificateRefs) > 0 {
 		var sb strings.Builder
 		for _, ref := range tls.CACertificateRefs {
 			nn := types.NamespacedName{Namespace: policy.Namespace, Name: ref.Name}
@@ -141,26 +167,28 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 			}
 			sb.WriteString(pem)
 		}
+		// TODO: if none, submit something to make agentgateway reject requests instead of fail open.
 		if sb.Len() > 0 {
-			caCert = wrapperspb.Bytes([]byte(sb.String()))
+			p.Root = wrapperspb.Bytes([]byte(sb.String()))
 		}
 	}
 
-	// Map verify SANs to Hostname if provided (use first entry only)
-	var hostname *wrapperspb.StringValue
-	if tls := policy.Spec.Backend.TLS; tls != nil && len(tls.VerifySubjectAltNames) > 0 {
-		hostname = wrapperspb.String(tls.VerifySubjectAltNames[0])
+	if len(tls.VerifySubjectAltNames) > 0 {
+		p.VerifySubjectAltNames = tls.VerifySubjectAltNames
 	}
+	p.Hostname = stringPb(tls.Sni)
 
-	// Map insecure modes
-	var insecure *wrapperspb.BoolValue
-	if tls := policy.Spec.Backend.TLS; tls != nil && tls.InsecureSkipVerify != nil {
+	if tls.InsecureSkipVerify != nil {
 		switch *tls.InsecureSkipVerify {
 		case v1alpha1.InsecureTLSModeAll:
-			insecure = wrapperspb.Bool(true)
+			p.Verification = api.BackendPolicySpec_BackendTLS_INSECURE_ALL
 		case v1alpha1.InsecureTLSModeHostname:
-			// Not directly supported in agentgateway API; fall back to default verification
+			p.Verification = api.BackendPolicySpec_BackendTLS_INSECURE_HOST
 		}
+	}
+
+	if tls.AlpnProtocols != nil {
+		p.Alpn = &api.Alpn{Protocols: *tls.AlpnProtocols}
 	}
 
 	tlsPolicy := &api.Policy{
@@ -169,13 +197,7 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 		Kind: &api.Policy_Backend{
 			Backend: &api.BackendPolicySpec{
 				Kind: &api.BackendPolicySpec_BackendTls{
-					BackendTls: &api.BackendPolicySpec_BackendTLS{
-						Root:     caCert,
-						Cert:     nil,
-						Key:      nil,
-						Insecure: insecure,
-						Hostname: hostname,
-					},
+					BackendTls: p,
 				},
 			}},
 	}
@@ -186,30 +208,33 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 
 	return []AgwPolicy{{Policy: tlsPolicy}}, errors.Join(errs...)
 }
+
 func translateBackendHTTP(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, name string, target *api.PolicyTarget) ([]AgwPolicy, error) {
 	http := policy.Spec.Backend.HTTP
-
-	tlsPolicy := &api.Policy{
+	p := &api.BackendPolicySpec_BackendHTTP{}
+	if v := http.Version; v != nil {
+		switch *v {
+		case v1alpha1.HTTPVersion1:
+			p.Version = api.BackendPolicySpec_BackendHTTP_HTTP1
+		case v1alpha1.HTTPVersion2:
+			p.Version = api.BackendPolicySpec_BackendHTTP_HTTP2
+		}
+	}
+	tp := &api.Policy{
 		Name:   policy.Namespace + "/" + policy.Name + backendHttpPolicySuffix + attachmentName(target),
 		Target: target,
 		Kind: &api.Policy_Backend{
 			Backend: &api.BackendPolicySpec{
-				Kind: &api.BackendPolicySpec_htt{
-					BackendTls: &api.BackendPolicySpec_BackendTLS{
-						Root:     caCert,
-						Cert:     nil,
-						Key:      nil,
-						Insecure: insecure,
-						Hostname: hostname,
-					},
+				Kind: &api.BackendPolicySpec_BackendHttp{
+					BackendHttp: p,
 				},
 			}},
 	}
-	logger.Debug("generated TLS policy",
+	logger.Debug("generated HTTP policy",
 		"policy", policy.Name,
-		"agentgateway_policy", tlsPolicy.Name)
+		"agentgateway_policy", tp.Name)
 
-	return []AgwPolicy{{Policy: pol}}, nil
+	return []AgwPolicy{{Policy: tp}}, nil
 }
 
 func translateBackendMCPAuthorization(policy *v1alpha1.AgentgatewayPolicy, target *api.PolicyTarget) []AgwPolicy {
@@ -424,4 +449,11 @@ func translateRouteType(rt v1alpha1.RouteType) api.AIBackend_RouteType {
 		// Default to completions if unknown type
 		return api.AIBackend_COMPLETIONS
 	}
+}
+
+func stringPb(model *string) *wrapperspb.StringValue {
+	if model == nil {
+		return nil
+	}
+	return wrapperspb.String(*model)
 }
