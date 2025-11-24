@@ -147,7 +147,7 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 	}
 
 	// Build CA bundle from referenced ConfigMaps, if provided
-	// If we were using mTLS, we may be overriding the perviously set p.Root -- this is intended
+	// If we were using mTLS, we may be overriding the previously set p.Root -- this is intended
 	if len(tls.CACertificateRefs) > 0 {
 		var sb strings.Builder
 		for _, ref := range tls.CACertificateRefs {
