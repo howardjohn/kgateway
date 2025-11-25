@@ -28,8 +28,6 @@ spec:
         time: 60s
         interval: 30s
     http:
-      poolIdleTimeout: 30s
-      http2FrameSize: 17000
       version: HTTP2
     auth:
       secretRef:

@@ -61,11 +61,7 @@ func translateBackendPolicyToAgw(
 	policyName := getBackendPolicyName(policy.Namespace, policy.Name)
 
 	if s := backend.HTTP; s != nil {
-		pol, err := translateBackendHTTP(ctx, policy, policyName, policyTarget)
-		if err != nil {
-			logger.Error("error processing backend HTTP", "err", err)
-			errs = append(errs, err)
-		}
+		pol := translateBackendHTTP(policy, policyTarget)
 		agwPolicies = append(agwPolicies, pol...)
 	}
 
@@ -209,7 +205,7 @@ func translateBackendTLS(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, tar
 	return []AgwPolicy{{Policy: tlsPolicy}}, errors.Join(errs...)
 }
 
-func translateBackendHTTP(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, name string, target *api.PolicyTarget) ([]AgwPolicy, error) {
+func translateBackendHTTP(policy *v1alpha1.AgentgatewayPolicy, target *api.PolicyTarget) []AgwPolicy {
 	http := policy.Spec.Backend.HTTP
 	p := &api.BackendPolicySpec_BackendHTTP{}
 	if v := http.Version; v != nil {
@@ -234,7 +230,7 @@ func translateBackendHTTP(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, na
 		"policy", policy.Name,
 		"agentgateway_policy", tp.Name)
 
-	return []AgwPolicy{{Policy: tp}}, nil
+	return []AgwPolicy{{Policy: tp}}
 }
 
 func translateBackendMCPAuthorization(policy *v1alpha1.AgentgatewayPolicy, target *api.PolicyTarget) []AgwPolicy {
@@ -346,7 +342,7 @@ func translateBackendAI(ctx PolicyCtx, agwPolicy *v1alpha1.AgentgatewayPolicy, n
 	}
 
 	if aiSpec.Routes != nil {
-		r := make(map[string]api.AIBackend_RouteType)
+		r := make(map[string]api.BackendPolicySpec_Ai_RouteType)
 		for path, routeType := range aiSpec.Routes {
 			r[path] = translateRouteType(routeType)
 		}
@@ -431,23 +427,23 @@ func translateBackendAuth(ctx PolicyCtx, policy *v1alpha1.AgentgatewayPolicy, na
 }
 
 // translateRouteType converts kgateway RouteType to agentgateway proto RouteType
-func translateRouteType(rt v1alpha1.RouteType) api.AIBackend_RouteType {
+func translateRouteType(rt v1alpha1.RouteType) api.BackendPolicySpec_Ai_RouteType {
 	switch rt {
 	case v1alpha1.RouteTypeCompletions:
-		return api.AIBackend_COMPLETIONS
+		return api.BackendPolicySpec_Ai_COMPLETIONS
 	case v1alpha1.RouteTypeMessages:
-		return api.AIBackend_MESSAGES
+		return api.BackendPolicySpec_Ai_MESSAGES
 	case v1alpha1.RouteTypeModels:
-		return api.AIBackend_MODELS
+		return api.BackendPolicySpec_Ai_MODELS
 	case v1alpha1.RouteTypePassthrough:
-		return api.AIBackend_PASSTHROUGH
+		return api.BackendPolicySpec_Ai_PASSTHROUGH
 	case v1alpha1.RouteTypeResponses:
-		return api.AIBackend_RESPONSES
+		return api.BackendPolicySpec_Ai_RESPONSES
 	case v1alpha1.RouteTypeAnthropicTokenCount:
-		return api.AIBackend_ANTHROPIC_TOKEN_COUNT
+		return api.BackendPolicySpec_Ai_ANTHROPIC_TOKEN_COUNT
 	default:
 		// Default to completions if unknown type
-		return api.AIBackend_COMPLETIONS
+		return api.BackendPolicySpec_Ai_COMPLETIONS
 	}
 }
 
