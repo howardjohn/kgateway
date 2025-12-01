@@ -56,29 +56,28 @@ type AgentgatewayParametersSpec struct {
 
 // +kubebuilder:validation:Enum=Json;Plain
 type AgentgatewayParametersLoggingFormat string
+
 const (
-	AgentgatewayParametersLoggingJson AgentgatewayParametersLoggingFormat = "Json"
+	AgentgatewayParametersLoggingJson  AgentgatewayParametersLoggingFormat = "Json"
 	AgentgatewayParametersLoggingPlain AgentgatewayParametersLoggingFormat = "Plain"
 )
 
 type AgentgatewayParametersLogging struct {
-	Level ListOrString `json:"level,omitempty"`
+	Level  ListOrString                        `json:"level,omitempty"`
 	Format AgentgatewayParametersLoggingFormat `json:"format,omitempty"`
 }
 
 type AgentgatewayParametersConfigs struct {
-
 	// Common set of labels to apply to all generated resources.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Annotations is an unstructured key value map stored with a resource that may be
-	// set by external tools to store and retrieve arbitrary metadata. They are not
-	// queryable and should be preserved when modifying objects.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+	// Common set of annotations to apply to all generated resources.
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
+	// logging configuration for Agentgateway. By default, all logs are set to "info" level.
+	// +optional
 	Logging *AgentgatewayParametersLogging `json:"logging,omitempty"`
 	// The agentgateway container image. See
 	// https://kubernetes.io/docs/concepts/containers/images
@@ -149,7 +148,7 @@ type AgentgatewayParametersObjectOverlay struct {
 
 // TODO: this doesn't work
 // ListOrString is a type that can hold either a single string or a list of strings
-// +kubebuilder:validation:Type=array,string
+// +kubebuilder:validation:Type=array
 // +kubebuilder:validation:Type=string
 type ListOrString []string
 
