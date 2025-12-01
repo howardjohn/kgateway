@@ -126,6 +126,20 @@ spec:
                       The patch is applied after all other fields are applied.
                     x-kubernetes-preserve-unknown-fields: true
                 type: object
+              logging:
+                properties:
+                  format:
+                    enum:
+                    - Json
+                    - Plain
+                    type: string
+                  level:
+                    description: ListOrString is a type that can hold either a single
+                      string or a list of strings
+                    items:
+                      type: string
+                    type: string
+                type: object
               podDisruptionBudget:
                 description: |-
                   podDisruptionBudget allows specifying overrides for the generated PodDisruptionBudget resource.

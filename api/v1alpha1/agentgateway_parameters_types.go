@@ -1,6 +1,11 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -49,7 +54,55 @@ type AgentgatewayParametersSpec struct {
 	AgentgatewayParametersOverlays `json:",inline"`
 }
 
+// +kubebuilder:validation:Enum=Json;Plain
+type AgentgatewayParametersLoggingFormat string
+const (
+	AgentgatewayParametersLoggingJson AgentgatewayParametersLoggingFormat = "Json"
+	AgentgatewayParametersLoggingPlain AgentgatewayParametersLoggingFormat = "Plain"
+)
+
+type AgentgatewayParametersLogging struct {
+	Level ListOrString `json:"level,omitempty"`
+	Format AgentgatewayParametersLoggingFormat `json:"format,omitempty"`
+}
+
 type AgentgatewayParametersConfigs struct {
+
+	// Common set of labels to apply to all generated resources.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Annotations is an unstructured key value map stored with a resource that may be
+	// set by external tools to store and retrieve arbitrary metadata. They are not
+	// queryable and should be preserved when modifying objects.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	Logging *AgentgatewayParametersLogging `json:"logging,omitempty"`
+	// The agentgateway container image. See
+	// https://kubernetes.io/docs/concepts/containers/images
+	// for details.
+	//
+	// Default values, which may be overridden individually:
+	//
+	//	registry: ghcr.io/agentgateway
+	//	repository: agentgateway
+	//	tag: <agentgateway version>
+	//	pullPolicy: IfNotPresent
+	//
+	// +optional
+	Image *Image `json:"image,omitempty"`
+	// The container environment variables.
+	//
+	// +optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
+	// The compute resources required by this container. See
+	// https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+	// for details.
+	//
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type AgentgatewayParametersOverlays struct {
@@ -92,4 +145,33 @@ type AgentgatewayParametersObjectOverlay struct {
 	// The patch is applied after all other fields are applied.
 	// +optional
 	Spec apiextensionsv1.JSON `json:"spec,omitempty"`
+}
+
+// TODO: this doesn't work
+// ListOrString is a type that can hold either a single string or a list of strings
+// +kubebuilder:validation:Type=array,string
+// +kubebuilder:validation:Type=string
+type ListOrString []string
+
+// UnmarshalJSON implements the json.Unmarshaller interface
+func (l *ListOrString) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+
+	// Try to unmarshal as string first
+	var strVal string
+	if err := json.Unmarshal(data, &strVal); err == nil {
+		*l = strings.Split(strVal, ",")
+		return nil
+	}
+
+	// Try to unmarshal as array
+	var arrVal []string
+	if err := json.Unmarshal(data, &arrVal); err == nil {
+		*l = arrVal
+		return nil
+	}
+
+	return fmt.Errorf("cannot unmarshal %s into ListOrString", string(data))
 }
