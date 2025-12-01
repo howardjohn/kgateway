@@ -1,0 +1,240 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.1-0.20251023132335-bf7d6b742e6a
+  labels:
+    app: kgateway
+    app.kubernetes.io/name: kgateway
+    gateway.networking.k8s.io/policy: Direct
+  name: agentgatewayparameters.gateway.kgateway.dev
+spec:
+  group: gateway.kgateway.dev
+  names:
+    categories:
+    - kgateway
+    kind: AgentgatewayParameters
+    listKind: AgentgatewayParametersList
+    plural: agentgatewayparameters
+    shortNames:
+    - agpar
+    singular: agentgatewayparameters
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Agentgateway policy acceptance status
+      jsonPath: .status.ancestors[*].conditions[?(@.type=='Accepted')].status
+      name: Accepted
+      type: string
+    - description: Agentgateway policy attachment status
+      jsonPath: .status.ancestors[*].conditions[?(@.type=='Attached')].status
+      name: Attached
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of AgentgatewayParameters.
+            properties:
+              deployment:
+                description: deployment allows specifying overrides for the generated
+                  Deployment resource.
+                properties:
+                  metadata:
+                    description: metadata defines a subset of object metadata to be
+                      customized.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec defines an overlay to apply onto the object, using [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+                      The patch is applied after all other fields are applied.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              horizontalPodAutoscaler:
+                description: |-
+                  horizontalPodAutoscaler allows specifying overrides for the generated HorizontalPodAutoscaler resource.
+                  Note: a HorizontalPodAutoscaler is not deployed by default. Setting this field enables a default one.
+                  If you just want the default, without customizations, use `horizontalPodAutoscaler: {}`.
+                properties:
+                  metadata:
+                    description: metadata defines a subset of object metadata to be
+                      customized.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec defines an overlay to apply onto the object, using [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+                      The patch is applied after all other fields are applied.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              podDisruptionBudget:
+                description: |-
+                  podDisruptionBudget allows specifying overrides for the generated PodDisruptionBudget resource.
+                  Note: a PodDisruptionBudget is not deployed by default. Setting this field enables a default one.
+                  If you just want the default, without customizations, use `podDisruptionBudget: {}`.
+                properties:
+                  metadata:
+                    description: metadata defines a subset of object metadata to be
+                      customized.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec defines an overlay to apply onto the object, using [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+                      The patch is applied after all other fields are applied.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              service:
+                description: service allows specifying overrides for the generated
+                  Service resource.
+                properties:
+                  metadata:
+                    description: metadata defines a subset of object metadata to be
+                      customized.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec defines an overlay to apply onto the object, using [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+                      The patch is applied after all other fields are applied.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              serviceAccount:
+                description: serviceAccount allows specifying overrides for the generated
+                  ServiceAccount resource.
+                properties:
+                  metadata:
+                    description: metadata defines a subset of object metadata to be
+                      customized.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+                        type: object
+                    type: object
+                  spec:
+                    description: |-
+                      spec defines an overlay to apply onto the object, using [Strategic Merge Patch](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/strategic-merge-patch.md).
+                      The patch is applied after all other fields are applied.
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+            type: object
+          status:
+            description: status defines the current state of AgentgatewayParameters.
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

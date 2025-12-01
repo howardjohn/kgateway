@@ -93,6 +93,7 @@ rules:
   - gateway.kgateway.dev
   resources:
   - agentgatewaybackends
+  - agentgatewayparameters
   - agentgatewaypolicies
   - backendconfigpolicies
   - backends
@@ -110,6 +111,7 @@ rules:
   - gateway.kgateway.dev
   resources:
   - agentgatewaybackends/status
+  - agentgatewayparameters/status
   - agentgatewaypolicies/status
   - backendconfigpolicies/status
   - backends/status

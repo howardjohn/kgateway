@@ -4,6 +4,8 @@ package v1alpha1
 
 type AgentgatewayBackendExpansion interface{}
 
+type AgentgatewayParametersExpansion interface{}
+
 type AgentgatewayPolicyExpansion interface{}
 
 type BackendExpansion interface{}
