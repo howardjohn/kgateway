@@ -20,19 +20,30 @@ Binds:
   port: 90
 Listeners:
 - bindKey: 90/default/example-gateway
-  gatewayName: default/example-gateway
   key: default/example-gateway.bar
-  name: bar
+  name:
+    gatewayName: example-gateway
+    gatewayNamespace: default
+    listenerName: bar
   protocol: HTTP
 - bindKey: 80/default/example-gateway
-  gatewayName: default/example-gateway
   key: default/example-gateway.foo
-  name: foo
+  name:
+    gatewayName: example-gateway
+    gatewayNamespace: default
+    listenerName: foo
   protocol: HTTP
 Policies:
-- name: traffic/default/example-policy:extproc:default/example-gateway.foo
+- key: traffic/default/example-policy:extproc:default/example-gateway/foo
+  name:
+    kind: AgentgatewayPolicy
+    name: example-policy
+    namespace: default
   target:
-    listener: default/example-gateway.foo
+    gateway:
+      listener: foo
+      name: example-gateway
+      namespace: default
   traffic:
     extProc:
       target:
@@ -48,7 +59,10 @@ Routes:
   - example.com
   key: default/example-route.0.0.bar
   listenerKey: default/example-gateway.bar
-  routeName: default/example-route
+  name:
+    kind: HTTPRoute
+    name: example-route
+    namespace: default
 - backends:
   - backend:
       port: 80
@@ -58,4 +72,7 @@ Routes:
   - example.com
   key: default/example-route.0.0.foo
   listenerKey: default/example-gateway.foo
-  routeName: default/example-route
+  name:
+    kind: HTTPRoute
+    name: example-route
+    namespace: default

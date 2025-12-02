@@ -36,7 +36,10 @@ output:
       matches:
       - path:
           exact: /example.Service/GetUser
-      routeName: default/test-grpc-route
+      name:
+        kind: GRPCRoute
+        name: test-grpc-route
+        namespace: default
 status:
 - apiVersion: gateway.networking.k8s.io/v1
   kind: GRPCRoute

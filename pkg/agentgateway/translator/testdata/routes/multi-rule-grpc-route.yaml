@@ -43,7 +43,10 @@ output:
       matches:
       - path:
           exact: /user.Service/GetUser
-      routeName: default/multi-rule-grpc-route
+      name:
+        kind: GRPCRoute
+        name: multi-rule-grpc-route
+        namespace: default
 - gateway:
     Name: test-gateway
     Namespace: default
@@ -61,7 +64,10 @@ output:
       matches:
       - path:
           exact: /order.Service/CreateOrder
-      routeName: default/multi-rule-grpc-route
+      name:
+        kind: GRPCRoute
+        name: multi-rule-grpc-route
+        namespace: default
 status:
 - apiVersion: gateway.networking.k8s.io/v1
   kind: GRPCRoute

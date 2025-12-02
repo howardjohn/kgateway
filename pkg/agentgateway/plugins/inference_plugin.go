@@ -1,14 +1,16 @@
 package plugins
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/agentgateway/agentgateway/go/api"
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/ptr"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	inf "sigs.k8s.io/gateway-api-inference-extension/api/v1"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
 
@@ -35,9 +37,7 @@ func translatePoliciesForInferencePool(pool *inf.InferencePool, domainSuffix str
 	var infPolicies []AgwPolicy
 
 	// 'service/{namespace}/{hostname}:{port}'
-	svc := fmt.Sprintf("service/%v/%v.%v.inference.%v:%v",
-		// Note: InferencePool v1 only supports a single target port
-		pool.Namespace, pool.Name, pool.Namespace, domainSuffix, pool.Spec.TargetPorts[0].Number)
+	hostname := kubeutils.GetInferenceServiceHostname(pool.Name, pool.Namespace)
 
 	epr := pool.Spec.EndpointPickerRef
 	if epr.Group != nil && *epr.Group != "" {
@@ -57,10 +57,7 @@ func translatePoliciesForInferencePool(pool *inf.InferencePool, domainSuffix str
 
 	eppPort := epr.Port.Number
 
-	eppSvc := fmt.Sprintf("%v/%v.%v.svc.%v",
-		pool.Namespace, epr.Name, pool.Namespace, domainSuffix)
-	eppPolicyTarget := fmt.Sprintf("service/%v:%v",
-		eppSvc, eppPort)
+	eppSvc := kubeutils.GetServiceHostname(string(epr.Name), pool.Namespace)
 
 	failureMode := api.BackendPolicySpec_InferenceRouting_FAIL_CLOSED
 	if epr.FailureMode == inf.EndpointPickerFailOpen {
@@ -69,8 +66,9 @@ func translatePoliciesForInferencePool(pool *inf.InferencePool, domainSuffix str
 
 	// Create the inference routing policy
 	inferencePolicy := &api.Policy{
-		Name:   pool.Namespace + "/" + pool.Name + ":inference",
-		Target: &api.PolicyTarget{Kind: &api.PolicyTarget_Backend{Backend: svc}},
+		Key:    pool.Namespace + "/" + pool.Name + ":inference",
+		Name:   TypedResourceName(wellknown.InferencePoolGVK.Kind, pool),
+		Target: &api.PolicyTarget{Kind: utils.ServiceTargetWithHostname(pool.Namespace, hostname, nil)},
 		Kind: &api.Policy_Backend{
 			Backend: &api.BackendPolicySpec{
 				Kind: &api.BackendPolicySpec_InferenceRouting_{
@@ -90,8 +88,9 @@ func translatePoliciesForInferencePool(pool *inf.InferencePool, domainSuffix str
 	// Create the TLS policy for the endpoint picker
 	// TODO: we would want some way if they explicitly set a BackendTLSPolicy for the EPP to respect that
 	inferencePolicyTLS := &api.Policy{
-		Name:   pool.Namespace + "/" + pool.Name + ":inferencetls",
-		Target: &api.PolicyTarget{Kind: &api.PolicyTarget_Backend{Backend: eppPolicyTarget}},
+		Key:    pool.Namespace + "/" + pool.Name + ":inferencetls",
+		Name:   TypedResourceName(wellknown.InferencePoolGVK.Kind, pool),
+		Target: &api.PolicyTarget{Kind: utils.ServiceTargetWithHostname(pool.Namespace, eppSvc, ptr.Of(strconv.Itoa(int(eppPort))))},
 		Kind: &api.Policy_Backend{
 			Backend: &api.BackendPolicySpec{
 				Kind: &api.BackendPolicySpec_BackendTls{

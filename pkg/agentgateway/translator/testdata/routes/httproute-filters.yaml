@@ -128,7 +128,10 @@ output:
       matches:
       - path:
           pathPrefix: /multi-mirrors
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - requestMirror:
           mirrors:
@@ -157,7 +160,10 @@ output:
       matches:
       - path:
           pathPrefix: /request-headers
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - requestHeaderModifier:
           add:
@@ -187,7 +193,10 @@ output:
       matches:
       - path:
           pathPrefix: /response-headers
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - responseHeaderModifier:
           add:
@@ -212,7 +221,10 @@ output:
       matches:
       - path:
           pathPrefix: /redirect
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - requestRedirect:
           scheme: https
@@ -234,7 +246,10 @@ output:
       matches:
       - path:
           pathPrefix: /cors
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - cors:
           allowCredentials: true
@@ -259,7 +274,10 @@ output:
       matches:
       - path:
           pathPrefix: /direct
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
 status:
 - apiVersion: gateway.networking.k8s.io/v1
   kind: HTTPRoute

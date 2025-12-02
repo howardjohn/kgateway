@@ -50,7 +50,10 @@ output:
           name: X-API-Version
         path:
           pathPrefix: /api
-      routeName: default/exact-match-route
+      name:
+        kind: HTTPRoute
+        name: exact-match-route
+        namespace: default
 - gateway:
     Name: test-gateway
     Namespace: default
@@ -68,7 +71,10 @@ output:
       matches:
       - path:
           exact: /exact
-      routeName: default/exact-match-route
+      name:
+        kind: HTTPRoute
+        name: exact-match-route
+        namespace: default
 status:
 - apiVersion: gateway.networking.k8s.io/v1
   kind: HTTPRoute

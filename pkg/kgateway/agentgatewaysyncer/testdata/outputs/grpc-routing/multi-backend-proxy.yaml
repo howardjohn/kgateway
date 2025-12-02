@@ -20,9 +20,11 @@ Binds:
   port: 8090
 Listeners:
 - bindKey: 8090/default/example-grpc-gateway
-  gatewayName: default/example-grpc-gateway
   key: default/example-grpc-gateway.grpc
-  name: grpc
+  name:
+    gatewayName: example-grpc-gateway
+    gatewayNamespace: default
+    listenerName: grpc
   protocol: HTTP
 Routes:
 - backends:
@@ -39,4 +41,7 @@ Routes:
   matches:
   - path:
       exact: /example.multi.Service/MultiMethod
-  routeName: default/example-grpc-multi-backend-route
+  name:
+    kind: GRPCRoute
+    name: example-grpc-multi-backend-route
+    namespace: default

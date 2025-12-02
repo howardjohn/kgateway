@@ -59,7 +59,10 @@ output:
       matches:
       - path:
           pathPrefix: /timeouts
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - timeout:
           backendRequest: 5s
@@ -81,7 +84,10 @@ output:
       matches:
       - path:
           pathPrefix: /zero-req
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - timeout:
           backendRequest: 5s
@@ -102,7 +108,10 @@ output:
       matches:
       - path:
           pathPrefix: /zero-backend
-      routeName: default/request-multiple-mirrors-headers
+      name:
+        kind: HTTPRoute
+        name: request-multiple-mirrors-headers
+        namespace: default
       trafficPolicies:
       - timeout:
           request: 10s

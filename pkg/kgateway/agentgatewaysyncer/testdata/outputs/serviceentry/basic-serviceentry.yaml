@@ -27,9 +27,11 @@ Binds:
   port: 80
 Listeners:
 - bindKey: 80/default/example-gateway
-  gatewayName: default/example-gateway
   key: default/example-gateway.http
-  name: http
+  name:
+    gatewayName: example-gateway
+    gatewayNamespace: default
+    listenerName: http
   protocol: HTTP
 Routes:
 - backends:
@@ -41,4 +43,7 @@ Routes:
   - external.example.com
   key: default/external-service-route.0.0.http
   listenerKey: default/example-gateway.http
-  routeName: default/external-service-route
+  name:
+    kind: HTTPRoute
+    name: external-service-route
+    namespace: default
