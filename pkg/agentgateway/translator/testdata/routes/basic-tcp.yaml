@@ -56,7 +56,10 @@ output:
         weight: 1
       key: default/tcp-app-1.0.foo
       listenerKey: default/tcp-gw.foo
-      routeName: default/tcp-app-1
+      name:
+        kind: TCPRoute
+        name: tcp-app-1
+        namespace: default
 - gateway:
     Name: tcp-gw
     Namespace: default
@@ -69,7 +72,10 @@ output:
         weight: 1
       key: default/tcp-app-2.0.bar
       listenerKey: default/tcp-gw.bar
-      routeName: default/tcp-app-2
+      name:
+        kind: TCPRoute
+        name: tcp-app-2
+        namespace: default
 status:
 - apiVersion: gateway.networking.k8s.io/v1alpha2
   kind: TCPRoute

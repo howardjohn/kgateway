@@ -74,9 +74,15 @@ spec:
 # Output
 output:
 - Policy:
-    name: traffic/default/agw:rbac:default/test
+    key: traffic/default/agw:rbac:default/test
+    name:
+      kind: AgentgatewayPolicy
+      name: agw
+      namespace: default
     target:
-      route: default/test
+      route:
+        name: test
+        namespace: default
     traffic:
       authorization:
         deny:
@@ -123,9 +129,15 @@ output:
           /v1/chat/completions: COMPLETIONS
           /v1/embeddings: PASSTHROUGH
           /v1/models: PASSTHROUGH
-    name: backend/default/agw:ai:default/test
+    key: backend/default/agw:ai:default/test
+    name:
+      kind: AgentgatewayPolicy
+      name: agw
+      namespace: default
     target:
-      route: default/test
+      route:
+        name: test
+        namespace: default
 status:
   ancestors:
   - ancestorRef:
