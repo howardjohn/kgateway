@@ -16,9 +16,8 @@ import (
 
 // NewInferencePlugin creates a new InferencePool policy plugin
 func NewInferencePlugin(agw *AgwCollections) AgwPlugin {
-	domainSuffix := kubeutils.GetClusterDomainName()
 	policyCol := krt.NewManyCollection(agw.InferencePools, func(krtctx krt.HandlerContext, infPool *inf.InferencePool) []AgwPolicy {
-		return translatePoliciesForInferencePool(infPool, domainSuffix)
+		return translatePoliciesForInferencePool(infPool)
 	})
 	return AgwPlugin{
 		ContributesPolicies: map[schema.GroupKind]PolicyPlugin{
@@ -33,7 +32,7 @@ func NewInferencePlugin(agw *AgwCollections) AgwPlugin {
 }
 
 // translatePoliciesForInferencePool generates policies for a single inference pool
-func translatePoliciesForInferencePool(pool *inf.InferencePool, domainSuffix string) []AgwPolicy {
+func translatePoliciesForInferencePool(pool *inf.InferencePool) []AgwPolicy {
 	var infPolicies []AgwPolicy
 
 	// 'service/{namespace}/{hostname}:{port}'

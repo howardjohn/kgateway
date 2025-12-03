@@ -130,7 +130,7 @@ spec:
           value: "0"
       containers:
         - name: agent-gateway
-          image: "ghcr.io/agentgateway/agentgateway:0.11.0-alpha.9f3dde27fa842bea667c2deff54e7b4909764103"
+          image: "ghcr.io/agentgateway/agentgateway:0.11.0-alpha.f45f1a94cdfa53d96e14301d59ac62200214cb9c"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

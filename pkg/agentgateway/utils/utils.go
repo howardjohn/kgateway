@@ -86,7 +86,7 @@ func ServiceTargetWithHostname(namespace, hostname string, port *string) *api.Po
 	var portNum *uint32
 	if port != nil {
 		parsed, _ := strconv.Atoi(*port)
-		portNum = ptr.Of(uint32(parsed))
+		portNum = ptr.Of(uint32(parsed)) // nolint:gosec // G115: kubebuilder validation ensures safe for uint32
 	}
 	return &api.PolicyTarget_Service{
 		Service: &api.PolicyTarget_ServiceTarget{
