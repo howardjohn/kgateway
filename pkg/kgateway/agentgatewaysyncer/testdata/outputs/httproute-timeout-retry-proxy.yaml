@@ -20,7 +20,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-backend-request-both-timeout.com
@@ -37,7 +39,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-backend-request-timeout.com
@@ -53,7 +57,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-retry-backend-request.com
@@ -75,7 +81,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-retry-both-timeouts.com
@@ -94,7 +102,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-retry.com
@@ -113,7 +123,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example.com

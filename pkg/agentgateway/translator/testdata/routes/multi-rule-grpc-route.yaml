@@ -34,7 +34,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - grpc.example.com
@@ -55,7 +57,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v2.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v2.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - grpc.example.com

@@ -20,7 +20,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example.com

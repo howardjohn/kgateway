@@ -46,7 +46,9 @@ Backends:
       protocol: STREAMABLE_HTTP
     - backend:
         port: 80
-        service: default/mcp-svc.default.svc.cluster.local
+        service:
+          hostname: mcp-svc.default.svc.cluster.local
+          namespace: default
       name: mcp-svc-80
       path: /test
       protocol: STREAMABLE_HTTP
@@ -151,7 +153,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/mcp-svc.default.svc.cluster.local
+      service:
+        hostname: mcp-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example.com

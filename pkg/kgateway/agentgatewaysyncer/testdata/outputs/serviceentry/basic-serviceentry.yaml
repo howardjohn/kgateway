@@ -37,7 +37,9 @@ Routes:
 - backends:
   - backend:
       port: 8080
-      service: default/external.example.com
+      service:
+        hostname: external.example.com
+        namespace: default
     weight: 1
   hostnames:
   - external.example.com

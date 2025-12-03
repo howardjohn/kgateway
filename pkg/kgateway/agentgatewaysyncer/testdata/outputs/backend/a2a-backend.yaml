@@ -34,7 +34,9 @@ Routes:
 - backends:
   - backend:
       port: 9090
-      service: default/a2a-agent.default.svc.cluster.local
+      service:
+        hostname: a2a-agent.default.svc.cluster.local
+        namespace: default
     weight: 1
   key: default/a2a.0.0.http
   listenerKey: default/example-gateway.http

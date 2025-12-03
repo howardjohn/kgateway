@@ -52,7 +52,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       key: default/tcp-app-1.0.foo
       listenerKey: default/tcp-gw.foo
@@ -68,7 +70,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v2.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v2.default.svc.cluster.local
+            namespace: default
         weight: 1
       key: default/tcp-app-2.0.bar
       listenerKey: default/tcp-gw.bar

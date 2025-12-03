@@ -707,8 +707,11 @@ func buildAgwDestination(
 			}
 		} else {
 			rb.Backend = &api.BackendReference{
-				Kind: &api.BackendReference_Service{
-					Service: namespace + "/" + hostname,
+				Kind: &api.BackendReference_Service_{
+					Service: &api.BackendReference_Service{
+						Hostname:  hostname,
+						Namespace: namespace,
+					},
 				},
 				// InferencePool only supports single port
 				Port: uint32(svc.Spec.TargetPorts[0].Number), //nolint:gosec // G115: InferencePool TargetPort is int32 with validation 1-65535, always safe
@@ -740,8 +743,11 @@ func buildAgwDestination(
 		// Note: Backend validation happens via BackendIndex which uses the Hostname->ServiceEntry alias
 		// No need to explicitly check ServiceEntries here as the BackendIndex handles the resolution
 		rb.Backend = &api.BackendReference{
-			Kind: &api.BackendReference_Service{
-				Service: namespace + "/" + hostname,
+			Kind: &api.BackendReference_Service_{
+				Service: &api.BackendReference_Service{
+					Hostname:  hostname,
+					Namespace: namespace,
+				},
 			},
 			Port: uint32(*port), //nolint:gosec // G115: Gateway API PortNumber is int32 with validation 1-65535, always safe
 		}
@@ -778,8 +784,11 @@ func buildAgwDestination(
 			}
 		}
 		rb.Backend = &api.BackendReference{
-			Kind: &api.BackendReference_Service{
-				Service: namespace + "/" + hostname,
+			Kind: &api.BackendReference_Service_{
+				Service: &api.BackendReference_Service{
+					Hostname:  hostname,
+					Namespace: namespace,
+				},
 			},
 			Port: uint32(*port), //nolint:gosec // G115: Gateway API PortNumber is int32 with validation 1-65535, always safe
 		}

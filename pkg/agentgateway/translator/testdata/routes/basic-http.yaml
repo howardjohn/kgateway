@@ -27,7 +27,9 @@ output:
       backends:
       - backend:
           port: 80
-          service: default/test-service.default.svc.cluster.local
+          service:
+            hostname: test-service.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - example.com

@@ -102,7 +102,9 @@ Routes:
 - backends:
   - backend:
       port: 8080
-      service: default/api.example.com
+      service:
+        hostname: api.example.com
+        namespace: default
     weight: 1
   hostnames:
   - api.example.com

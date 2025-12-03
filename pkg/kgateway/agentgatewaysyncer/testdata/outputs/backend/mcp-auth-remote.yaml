@@ -12,12 +12,16 @@ Backends:
     targets:
     - backend:
         port: 80
-        service: default/example-svc.default.svc.cluster.local
+        service:
+          hostname: example-svc.default.svc.cluster.local
+          namespace: default
       name: example-svc-80
       protocol: STREAMABLE_HTTP
     - backend:
         port: 90
-        service: default/example-svc.default.svc.cluster.local
+        service:
+          hostname: example-svc.default.svc.cluster.local
+          namespace: default
       name: example-svc-90
       protocol: SSE
   name:

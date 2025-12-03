@@ -1107,8 +1107,11 @@ func buildBackendRef(ctx PolicyCtx, ref gwv1.BackendObjectReference, defaultNS s
 			return nil, fmt.Errorf("unable to find the InferencePool %v", key)
 		} else {
 			return &api.BackendReference{
-				Kind: &api.BackendReference_Service{
-					Service: namespace + "/" + hostname,
+				Kind: &api.BackendReference_Service_{
+					Service: &api.BackendReference_Service{
+						Hostname:  hostname,
+						Namespace: namespace,
+					},
 				},
 				// InferencePool only supports single port
 				Port: uint32(svc.Spec.TargetPorts[0].Number), //nolint:gosec // G115: InferencePool TargetPort is int32 with validation 1-65535, always safe
@@ -1132,8 +1135,11 @@ func buildBackendRef(ctx PolicyCtx, ref gwv1.BackendObjectReference, defaultNS s
 			return nil, errors.New("port is required for Service targets")
 		}
 		return &api.BackendReference{
-			Kind: &api.BackendReference_Service{
-				Service: namespace + "/" + hostname,
+			Kind: &api.BackendReference_Service_{
+				Service: &api.BackendReference_Service{
+					Hostname:  hostname,
+					Namespace: namespace,
+				},
 			},
 			Port: uint32(*port), //nolint:gosec // G115: Gateway API PortNumber is int32 with validation 1-65535, always safe
 		}, nil

@@ -54,7 +54,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/gateway-pool.default.inference.cluster.local
+          service:
+            hostname: gateway-pool.default.inference.cluster.local
+            namespace: default
         weight: 1
       key: default/gateway-route.0.0.http
       listenerKey: default/test-gateway.http
@@ -71,7 +73,9 @@ output:
         inferenceRouting:
           endpointPicker:
             port: 9002
-            service: gateway-pool-endpoint-picker.default.svc.cluster.local
+            service:
+              hostname: gateway-pool-endpoint-picker.default.svc.cluster.local
+              namespace: default
           failureMode: FAIL_CLOSED
       key: default/gateway-pool:inference
       name:

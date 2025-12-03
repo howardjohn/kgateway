@@ -187,8 +187,11 @@ func translateMCPBackends(ctx plugins.PolicyCtx, be *agentgateway.AgentgatewayBa
 					mcpTarget := &api.MCPTarget{
 						Name: targetName,
 						Backend: &api.BackendReference{
-							Kind: &api.BackendReference_Service{
-								Service: service.Namespace + "/" + svcHostname,
+							Kind: &api.BackendReference_Service_{
+								Service: &api.BackendReference_Service{
+									Hostname:  svcHostname,
+									Namespace: service.Namespace,
+								},
 							},
 							Port: uint32(port.Port), //nolint:gosec // G115: Kubernetes service ports are always positive
 						},

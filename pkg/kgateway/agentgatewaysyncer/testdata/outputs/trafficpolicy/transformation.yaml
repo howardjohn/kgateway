@@ -42,7 +42,9 @@ Routes:
 - backends:
   - backend:
       port: 8080
-      service: default/simple-svc.default.svc.cluster.local
+      service:
+        hostname: simple-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example-gateway-attached-transform.com

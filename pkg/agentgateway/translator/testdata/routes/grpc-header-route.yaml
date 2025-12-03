@@ -40,7 +40,9 @@ output:
       backends:
       - backend:
           port: 9090
-          service: default/grpc-service.default.svc.cluster.local
+          service:
+            hostname: grpc-service.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - grpc.example.com

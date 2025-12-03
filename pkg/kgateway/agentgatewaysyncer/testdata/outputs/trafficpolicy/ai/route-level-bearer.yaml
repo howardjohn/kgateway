@@ -38,7 +38,9 @@ Policies:
           webhook:
             backend:
               port: 8443
-              service: default/webhook.default.svc.cluster.local
+              service:
+                hostname: webhook.default.svc.cluster.local
+                namespace: default
             forwardHeaderMatches:
             - exact: bar
               name: x-foo
@@ -61,7 +63,9 @@ Policies:
         - webhook:
             backend:
               port: 8443
-              service: default/webhook.default.svc.cluster.local
+              service:
+                hostname: webhook.default.svc.cluster.local
+                namespace: default
         - regex:
             action: MASK
             rules:

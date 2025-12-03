@@ -116,7 +116,9 @@ output:
           - webhook:
               backend:
                 port: 80
-                service: default/webhook.default.svc.cluster.local
+                service:
+                  hostname: webhook.default.svc.cluster.local
+                  namespace: default
         prompts:
           append:
           - content: hello!

@@ -22,7 +22,9 @@ Routes:
 - backends:
   - backend:
       port: 9000
-      service: default/example-grpc-svc.default.svc.cluster.local
+      service:
+        hostname: example-grpc-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   key: default/example-grpc-route.0.grpc
   listenerKey: default/example-gateway.grpc

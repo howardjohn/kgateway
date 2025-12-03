@@ -48,12 +48,16 @@ Policies:
     extProc:
       target:
         port: 4444
-        service: default/extproc-svc.default.svc.cluster.local
+        service:
+          hostname: extproc-svc.default.svc.cluster.local
+          namespace: default
 Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example.com
@@ -66,7 +70,9 @@ Routes:
 - backends:
   - backend:
       port: 80
-      service: default/example-svc.default.svc.cluster.local
+      service:
+        hostname: example-svc.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - example.com

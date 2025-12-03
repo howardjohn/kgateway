@@ -37,7 +37,9 @@ Routes:
 - backends:
   - backend:
       port: 8000
-      service: default/httpbin.default.svc.cluster.local
+      service:
+        hostname: httpbin.default.svc.cluster.local
+        namespace: default
     weight: 1
   hostnames:
   - httpbin.local

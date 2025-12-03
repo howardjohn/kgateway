@@ -119,7 +119,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - example.com
@@ -137,11 +139,15 @@ output:
           mirrors:
           - backend:
               port: 8080
-              service: default/infra-backend-v2.default.svc.cluster.local
+              service:
+                hostname: infra-backend-v2.default.svc.cluster.local
+                namespace: default
             percentage: 100
           - backend:
               port: 8080
-              service: default/infra-backend-v3.default.svc.cluster.local
+              service:
+                hostname: infra-backend-v3.default.svc.cluster.local
+                namespace: default
             percentage: 100
 - gateway:
     Name: test-gateway
@@ -151,7 +157,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - example.com
@@ -184,7 +192,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - example.com
@@ -237,7 +247,9 @@ output:
       backends:
       - backend:
           port: 8080
-          service: default/infra-backend-v1.default.svc.cluster.local
+          service:
+            hostname: infra-backend-v1.default.svc.cluster.local
+            namespace: default
         weight: 1
       hostnames:
       - example.com
