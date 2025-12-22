@@ -39,11 +39,11 @@ require (
 	helm.sh/helm/v3 v3.19.2
 	istio.io/api v1.28.0-alpha.0.0.20251210001900-ce7b5802387c
 	istio.io/client-go v1.28.0-alpha.0.0.20251210002059-b67694478a4b
-	istio.io/istio v0.0.0-20251218162427-600ea84d2996
-	k8s.io/api v0.34.1
-	k8s.io/apiextensions-apiserver v0.34.1
+	istio.io/istio v0.0.0-20251222180632-21f81ccab0bd
+	k8s.io/api v0.34.2
+	k8s.io/apiextensions-apiserver v0.34.2
 	k8s.io/apimachinery v0.34.3
-	k8s.io/client-go v0.34.1
+	k8s.io/client-go v0.34.2
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20250814151709-d7b6acb124c3 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
@@ -61,6 +61,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/kagent-dev/mockllm v0.0.2-0.20251008144831-c6105837f767
 	github.com/openai/openai-go v1.12.0
+	sigs.k8s.io/gateway-api/conformance v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -631,10 +632,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.6.1 // indirect
-	k8s.io/apiserver v0.34.1 // indirect
+	k8s.io/apiserver v0.34.2 // indirect
 	k8s.io/cli-runtime v0.34.0 // indirect
-	k8s.io/code-generator v0.34.1 // indirect
-	k8s.io/component-base v0.34.1 // indirect
+	k8s.io/code-generator v0.34.2 // indirect
+	k8s.io/component-base v0.34.2 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250829030910-f1dc67e67210 // indirect
 	k8s.io/kubectl v0.34.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
@@ -667,3 +668,7 @@ tool (
 	sigs.k8s.io/controller-tools/cmd/controller-gen
 	sigs.k8s.io/kind
 )
+
+replace sigs.k8s.io/gateway-api/conformance => ../../../sigs.k8s.io/gateway-api/conformance
+
+replace sigs.k8s.io/gateway-api => ../../../sigs.k8s.io/gateway-api

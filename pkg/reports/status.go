@@ -220,7 +220,7 @@ func (r *ReportMap) BuildListenerSetStatus(ctx context.Context, ls gwxv1a1.XList
 	for i, f := range finalListeners {
 		fl = append(fl, gwxv1a1.ListenerEntryStatus{
 			Name:           f.Name,
-			Port:           ls.Spec.Listeners[i].Port,
+			Port:           gwxv1a1.StatusPortNumber(ls.Spec.Listeners[i].Port),
 			SupportedKinds: f.SupportedKinds,
 			AttachedRoutes: f.AttachedRoutes,
 			Conditions:     f.Conditions,

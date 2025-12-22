@@ -444,7 +444,7 @@ func ListenerSetCollection(
 					Hostnames:        hostnames,
 					OriginalHostname: string(ptr.OrEmpty(l.Hostname)),
 					SectionName:      l.Name,
-					Port:             l.Port,
+					Port:             gwv1.PortNumber(l.Port),
 					Protocol:         l.Protocol,
 					TLSPassthrough:   l.TLS != nil && l.TLS.Mode != nil && *l.TLS.Mode == gwv1.TLSModePassthrough,
 				}
@@ -530,7 +530,7 @@ func namespaceAcceptedByAllowListeners(localNamespace string, parent *gwv1.Gatew
 	return ls.Matches(toNamespaceSet(localNamespaceObject.Name, localNamespaceObject.Labels))
 }
 
-func detectListenerPortNumber(l gatewayx.ListenerEntry) (gatewayx.PortNumber, error) {
+func detectListenerPortNumber(l gatewayx.ListenerEntry) (gatewayx.PortNumberWith0, error) {
 	if l.Port != 0 {
 		return l.Port, nil
 	}
@@ -543,15 +543,21 @@ func detectListenerPortNumber(l gatewayx.ListenerEntry) (gatewayx.PortNumber, er
 	return 0, fmt.Errorf("protocol %v requires a port to be set", l.Protocol)
 }
 func convertListenerSetToListener(l gatewayx.ListenerEntry) gwv1.Listener {
-	// For now, structs are identical enough Go can cast them. I doubt this will hold up forever, but we can adjust as needed.
-	return gwv1.Listener(l)
+	return gwv1.Listener{
+		Name:         l.Name,
+		Hostname:      l.Hostname,
+		Port:        gwv1.PortNumber(l.Port),
+		Protocol:     l.Protocol,
+		TLS:           l.TLS,
+		AllowedRoutes: l.AllowedRoutes,
+	}
 }
 
 func convertStandardStatusToListenerSetStatus(l gatewayx.ListenerEntry) func(e gwv1.ListenerStatus) gatewayx.ListenerEntryStatus {
 	return func(e gwv1.ListenerStatus) gatewayx.ListenerEntryStatus {
 		return gatewayx.ListenerEntryStatus{
 			Name:           e.Name,
-			Port:           l.Port,
+			Port:           gatewayx.StatusPortNumber(l.Port),
 			SupportedKinds: e.SupportedKinds,
 			AttachedRoutes: e.AttachedRoutes,
 			Conditions:     e.Conditions,

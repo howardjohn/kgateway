@@ -380,7 +380,7 @@ func GatewaysForDeployerTransformationFunc(config *GatewayIndexConfig) func(kctx
 
 		for _, ls := range listenerSets {
 			for _, l := range ls.Spec.Listeners {
-				ports.Insert(l.Port)
+				ports.Insert(int32(l.Port))
 			}
 		}
 		ir := &ir.GatewayForDeployer{

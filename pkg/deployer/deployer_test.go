@@ -2447,7 +2447,7 @@ var _ = Describe("Deployer", func() {
 					Listeners: []apixv1a1.ListenerEntry{
 						{
 							Name: "listenerset-listener",
-							Port: apixv1a1.PortNumber(listenerSetPort),
+							Port: apixv1a1.PortNumberWith0(listenerSetPort),
 						},
 					},
 					ParentRef: apixv1a1.ParentGatewayReference{

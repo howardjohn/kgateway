@@ -10,7 +10,7 @@ func ToListener(listenerEntry gwxv1a1.ListenerEntry) gwv1.Listener {
 	return gwv1.Listener{
 		Name:          duplicate.Name,
 		Hostname:      duplicate.Hostname,
-		Port:          duplicate.Port,
+		Port:          gwv1.PortNumber(duplicate.Port),
 		Protocol:      duplicate.Protocol,
 		TLS:           duplicate.TLS,
 		AllowedRoutes: duplicate.AllowedRoutes,
