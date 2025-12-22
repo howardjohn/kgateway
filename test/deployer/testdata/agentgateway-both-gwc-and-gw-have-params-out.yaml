@@ -108,8 +108,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: GW_NAME
-          value: gw-using-gw-params
         - name: RUST_BACKTRACE
           value: "1"
         - name: RUST_LOG

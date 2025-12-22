@@ -107,8 +107,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: GW_NAME
-          value: agentgateway
         - name: RUST_BACKTRACE
           value: "1"
         - name: RUST_LOG

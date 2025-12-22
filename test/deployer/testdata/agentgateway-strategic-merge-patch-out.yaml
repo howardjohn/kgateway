@@ -117,8 +117,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: GW_NAME
-          value: gw
         - name: RUST_BACKTRACE
           value: "1"
         - name: XDS_ADDRESS
