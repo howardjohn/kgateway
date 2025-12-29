@@ -5,7 +5,6 @@ package conformance_test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"istio.io/istio/pkg/ptr"
