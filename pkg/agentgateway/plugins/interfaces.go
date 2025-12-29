@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/agentgateway/agentgateway/go/api"
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"istio.io/istio/pilot/pkg/util/protoconv"
 	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/kube/controllers"
@@ -18,14 +19,18 @@ import (
 // AgwPolicyStatusSyncHandler defines a function that handles status syncing for a specific policy type in AgentGateway
 type AgwPolicyStatusSyncHandler func(ctx context.Context, client apiclient.Client, namespacedName types.NamespacedName, status gwv1.PolicyStatus) error
 
+type PolicyPluginInput struct {
+	Ancestors krt.IndexCollection[utils.TypedNamespacedName, *utils.AncestorBackend]
+}
+
 type PolicyPlugin struct {
-	Policies       krt.Collection[AgwPolicy]
-	PolicyStatuses krt.StatusCollection[controllers.Object, gwv1.PolicyStatus]
+	Build func(PolicyPluginInput) (krt.StatusCollection[controllers.Object, gwv1.PolicyStatus], krt.Collection[AgwPolicy])
 }
 
 // ApplyPolicies extracts all policies from the collection
-func (p *PolicyPlugin) ApplyPolicies() (krt.Collection[AgwPolicy], krt.StatusCollection[controllers.Object, gwv1.PolicyStatus]) {
-	return p.Policies, p.PolicyStatuses
+func (p *PolicyPlugin) ApplyPolicies(inputs PolicyPluginInput) (krt.Collection[AgwPolicy], krt.StatusCollection[controllers.Object, gwv1.PolicyStatus]) {
+	status, col := p.Build(inputs)
+	return col, status
 }
 
 // AgwPolicy wraps an Agw policy for collection handling

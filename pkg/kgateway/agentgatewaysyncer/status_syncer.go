@@ -58,6 +58,7 @@ type AgentGwStatusSyncer struct {
 	grpcRoutes   StatusSyncer[*gwv1.GRPCRoute, *gwv1.GRPCRouteStatus]
 	tcpRoutes    StatusSyncer[*gwv1a2.TCPRoute, *gwv1a2.TCPRouteStatus]
 	tlsRoutes    StatusSyncer[*gwv1a2.TLSRoute, *gwv1a2.TLSRouteStatus]
+	backendTLSPolicies    StatusSyncer[*gwv1.BackendTLSPolicy, *gwv1.PolicyStatus]
 
 	extraAgwPolicyStatusHandlers map[schema.GroupVersionKind]agwplugins.AgwPolicyStatusSyncHandler
 }
@@ -161,6 +162,16 @@ func NewAgwStatusSyncer(
 				}
 			},
 		},
+		backendTLSPolicies: StatusSyncer[*gwv1.BackendTLSPolicy, *gwv1.PolicyStatus]{
+			name:   "backendTLSPolicy",
+			client: kclient.NewFilteredDelayed[*gwv1.BackendTLSPolicy](client, wellknown.BackendTLSPolicyGVR, f),
+			build: func(om metav1.ObjectMeta, s *gwv1.PolicyStatus) *gwv1.BackendTLSPolicy {
+				return &gwv1.BackendTLSPolicy{
+					ObjectMeta: om,
+					Status:     *s,
+				}
+			},
+		},
 	}
 
 	return syncer
@@ -217,6 +228,8 @@ func (s *AgentGwStatusSyncer) SyncStatus(ctx context.Context, resource status.Re
 		s.agentgatewayPolicies.ApplyStatus(ctx, resource, statusObj)
 	case wellknown.AgentgatewayBackendGVK:
 		s.agentgatewayBackends.ApplyStatus(ctx, resource, statusObj)
+	case wellknown.BackendTLSPolicyGVK:
+		s.backendTLSPolicies.ApplyStatus(ctx, resource, statusObj)
 	default:
 		// Attempt to handle extra policy kinds via registered handlers.
 		if s.extraAgwPolicyStatusHandlers != nil {

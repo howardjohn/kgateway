@@ -6,14 +6,16 @@ import (
 	"strings"
 
 	"github.com/agentgateway/agentgateway/go/api"
+	"istio.io/istio/pkg/config/schema/gvk"
+	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/ptr"
+	"istio.io/istio/pkg/util/sets"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/agentgateway"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/sslutils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
@@ -22,17 +24,16 @@ import (
 
 // NewBackendTLSPlugin creates a new BackendTLSPolicy plugin
 func NewBackendTLSPlugin(agw *AgwCollections) AgwPlugin {
-	policyCol := krt.NewManyCollection(agw.BackendTLSPolicies, func(krtctx krt.HandlerContext, btls *gwv1.BackendTLSPolicy) []AgwPolicy {
-		return translatePoliciesForBackendTLS(krtctx, agw.ConfigMaps, agw.Backends, btls)
-	}, agw.KrtOpts.ToOptions("agentgateway/BackendTLSPolicy")...)
 	return AgwPlugin{
 		ContributesPolicies: map[schema.GroupKind]PolicyPlugin{
 			wellknown.BackendTLSPolicyGVK.GroupKind(): {
-				Policies: policyCol,
+				Build: func(input PolicyPluginInput) (krt.StatusCollection[controllers.Object, gwv1.PolicyStatus], krt.Collection[AgwPolicy]) {
+					st, o := krt.NewStatusManyCollection(agw.BackendTLSPolicies, func(krtctx krt.HandlerContext, btls *gwv1.BackendTLSPolicy) (*gwv1.PolicyStatus, []AgwPolicy) {
+						return translatePoliciesForBackendTLS(krtctx, agw.ControllerName, input.Ancestors, agw.ConfigMaps, btls)
+					}, agw.KrtOpts.ToOptions("agentgateway/BackendTLSPolicy")...)
+					return convertStatusCollection(st), o
+				},
 			},
-		},
-		ExtraHasSynced: func() bool {
-			return policyCol.HasSynced()
 		},
 	}
 }
@@ -40,30 +41,62 @@ func NewBackendTLSPlugin(agw *AgwCollections) AgwPlugin {
 // translatePoliciesForService generates backend TLS policies
 func translatePoliciesForBackendTLS(
 	krtctx krt.HandlerContext,
+	controllerName string,
+	ancestors krt.IndexCollection[utils.TypedNamespacedName, *utils.AncestorBackend],
 	cfgmaps krt.Collection[*corev1.ConfigMap],
-	backends krt.Collection[*agentgateway.AgentgatewayBackend],
 	btls *gwv1.BackendTLSPolicy,
-) []AgwPolicy {
+) (*gwv1.PolicyStatus, []AgwPolicy) {
 	logger := logger.With("plugin_kind", "backendtls")
 	var policies []AgwPolicy
+	status := btls.Status.DeepCopy()
 
+	// Condition reporting for BackendTLSPolicy is tricky. The references are to Service (or other backends), but we report
+	// per-gateway.
+	// This means most of the results are aggregated.
+	conds := map[string]*condition{
+		string(gwv1.PolicyConditionAccepted): {
+			reason:  string(gwv1.PolicyReasonAccepted),
+			message: "Configuration is valid",
+		},
+		string(gwv1.BackendTLSPolicyConditionResolvedRefs): {
+			reason:  string(gwv1.BackendTLSPolicyReasonResolvedRefs),
+			message: "Configuration is valid",
+		},
+	}
+
+	caCert, err := getBackendTLSCACert(krtctx, cfgmaps, btls)
+	if err != nil {
+		logger.Error("error getting backend TLS CA cert", "policy", kubeutils.NamespacedNameFrom(btls), "error", err)
+		conds[string(gwv1.PolicyConditionAccepted)].error = &ConfigError{
+			Reason:  string(gwv1.PolicyReasonInvalid),
+			Message: err.Error(),
+		}
+		// a sentinel value to send to agentgateway to signal that it should reject TLS connects due to invalid config
+		caCert = []byte("invalid")
+	}
+
+	// Ideally we would report status for an unknown reference. However, Gateway API has decided we should report 1 status
+	// per Gateway, instead of per-Backend. This is questionable for users, but also means we don't have to worry about
+	// telling users if a reference is invalid and should just silently fail...
+	uniqueGateways := sets.New[types.NamespacedName]()
 	for _, target := range btls.Spec.TargetRefs {
 		var policyTarget *api.PolicyTarget
 
-		switch string(target.Kind) {
-		case wellknown.AgentgatewayBackendGVK.Kind:
-			backendRef := types.NamespacedName{
+		tgtRef := utils.TypedNamespacedName{
+			NamespacedName: types.NamespacedName{
 				Name:      string(target.Name),
 				Namespace: btls.Namespace,
+			},
+			Kind: string(target.Kind),
+		}
+		ancestorBackends := krt.Fetch(krtctx, ancestors, krt.FilterKey(tgtRef.String()))
+		for _, gwl := range ancestorBackends {
+			for _, i := range gwl.Objects {
+				uniqueGateways.Insert(i.Gateway)
 			}
-			backend := krt.FetchOne(krtctx, backends, krt.FilterObjectName(backendRef))
-			if backend == nil || *backend == nil {
-				logger.Error("backend not found; skipping policy", "backend", backendRef, "policy", kubeutils.NamespacedNameFrom(btls))
-				continue
-			}
-			// The target defaults to <backend-namespace>/<backend-name>.
-			// If SectionName is specified to select a specific target in the Backend,
-			// the target becomes <backend-namespace>/<backend-name>/<section-name>
+		}
+		switch string(target.Kind) {
+		case wellknown.AgentgatewayBackendGVK.Kind:
 			policyTarget = &api.PolicyTarget{
 				Kind: utils.BackendTarget(btls.Namespace, string(target.Name), target.SectionName),
 			}
@@ -79,12 +112,6 @@ func translatePoliciesForBackendTLS(
 			logger.Warn("unsupported target kind", "kind", target.Kind, "policy", btls.Name)
 			continue
 		}
-		caCert, err := getBackendTLSCACert(krtctx, cfgmaps, btls)
-		if err != nil {
-			logger.Error("error getting backend TLS CA cert", "policy", kubeutils.NamespacedNameFrom(btls), "error", err)
-			return nil
-		}
-
 		policy := &api.Policy{
 			Key:    btls.Namespace + "/" + btls.Name + backendTlsPolicySuffix + attachmentName(policyTarget),
 			Name:   TypedResourceName(wellknown.BackendTLSPolicyKind, btls),
@@ -101,12 +128,22 @@ func translatePoliciesForBackendTLS(
 							Hostname: ptr.Of(string(btls.Spec.Validation.Hostname)),
 						},
 					},
-				}},
+				},
+			},
 		}
 		policies = append(policies, AgwPolicy{policy})
 	}
-
-	return policies
+	ancestorStatus := make([]gwv1.PolicyAncestorStatus, 0, len(btls.Spec.TargetRefs))
+	for g := range uniqueGateways {
+		pr := gwv1.ParentReference{
+			Group: ptr.Of(gwv1.Group(gvk.KubernetesGateway.Group)),
+			Kind:  ptr.Of(gwv1.Kind(gvk.KubernetesGateway.Kind)),
+			Name:  gwv1.ObjectName(g.Name),
+		}
+		ancestorStatus = append(ancestorStatus, setAncestorStatus(pr, status, btls.Generation, conds, gwv1.GatewayController(controllerName)))
+	}
+	status.Ancestors = mergeAncestors(controllerName, status.Ancestors, ancestorStatus)
+	return status, policies
 }
 
 func getBackendTLSCACert(

@@ -6,6 +6,7 @@ import (
 
 	"github.com/agentgateway/agentgateway/go/api"
 	"istio.io/istio/pkg/ptr"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
@@ -73,6 +74,7 @@ func RouteName[T ~string](kind string, namespace, name string, routeRule *T) *ap
 		Kind:      kind,
 	}
 }
+
 func ServiceTarget[T ~string](namespace, name string, port *T) *api.PolicyTarget_Service {
 	hostname := fmt.Sprintf("%s.%s.svc.%s", name, namespace, kubeutils.GetClusterDomainName())
 	var ls *string
@@ -146,4 +148,26 @@ func BackendTarget[T ~string](backendNamespace, backendName string, section *T) 
 			Section:   ls,
 		},
 	}
+}
+
+type TypedNamespacedName struct {
+	types.NamespacedName
+	Kind string
+}
+
+func (n TypedNamespacedName) String() string {
+	return n.Kind + "/" + n.NamespacedName.String()
+}
+
+type AncestorBackend struct {
+	Gateway types.NamespacedName
+	Backend TypedNamespacedName
+}
+
+func (a AncestorBackend) Equals(other AncestorBackend) bool {
+	return a.Gateway == other.Gateway && a.Backend == other.Backend
+}
+
+func (a AncestorBackend) ResourceName() string {
+	return a.Gateway.String() + "/" + a.Backend.String()
 }
