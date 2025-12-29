@@ -5,7 +5,6 @@ package conformance_test
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -15,8 +14,6 @@ import (
 	"sigs.k8s.io/gateway-api/conformance"
 	"sigs.k8s.io/gateway-api/conformance/utils/suite"
 	"sigs.k8s.io/gateway-api/pkg/features"
-
-	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 )
 
 func TestConformance(t *testing.T) {
@@ -37,18 +34,24 @@ func TestConformance(t *testing.T) {
 		profiles.Insert(suite.GatewayTLSConformanceProfileName)
 	}
 	options.ConformanceProfiles = profiles
-
-	exemptFeatures := deployer.GetCommonExemptFeatures()
-
+	options.SkipTests = []string{}
 	if channel == features.FeatureChannelStandard {
-		exemptExperimentalFeatures(exemptFeatures)
+		exemptExperimentalFeatures(&options)
 	}
 
-	exemptFeatureString := suite.ParseSupportedFeatures(featureSetToCommaSeparatedString(exemptFeatures))
-	options.ExemptFeatures = suite.FeaturesSet(exemptFeatureString)
-
-	t.Logf("Running conformance tests with\nprofiles: %+v\nexempt features: %+v\n", profiles, exemptFeatures)
+	t.Logf("Running conformance tests with\nprofiles: %+v\n", profiles)
 	conformance.RunConformanceWithOptions(t, options)
+}
+
+func exemptExperimentalFeatures(options *suite.ConformanceOptions) {
+	if options.ExemptFeatures == nil {
+		options.ExemptFeatures = suite.FeaturesSet{}
+	}
+	for _, feature := range features.AllFeatures.UnsortedList() {
+		if feature.Channel == features.FeatureChannelExperimental {
+			options.ExemptFeatures.Insert(feature.Name)
+		}
+	}
 }
 
 // detectGatewayAPIChannel checks which Gateway API CRDs are installed to determine the channel
@@ -78,21 +81,4 @@ func detectGatewayAPIChannel() (string, error) {
 	}
 
 	return channel, nil
-}
-
-// exemptExperimentalFeatures exempts all experimental features from the exemptFeatures set. Modifies the set in place.
-func exemptExperimentalFeatures(exemptFeatures sets.Set[features.Feature]) {
-	for _, feature := range features.AllFeatures.UnsortedList() {
-		if feature.Channel == features.FeatureChannelExperimental {
-			exemptFeatures.Insert(feature)
-		}
-	}
-}
-
-func featureSetToCommaSeparatedString(featureSet sets.Set[features.Feature]) string {
-	features := []string{}
-	for _, feature := range featureSet.UnsortedList() {
-		features = append(features, string(feature.Name))
-	}
-	return strings.Join(features, ",")
 }

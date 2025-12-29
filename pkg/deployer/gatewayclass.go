@@ -35,6 +35,14 @@ func GetSupportedFeaturesForStandardGateway() []gwv1.SupportedFeature {
 		features.GatewayStaticAddressesFeature,
 		features.GatewayHTTPListenerIsolationFeature,
 	)
+
+	// we don't support the BackendTLSPolicy feature at all.
+	for _, feature := range features.BackendTLSPolicyCoreFeatures.UnsortedList() {
+		exemptFeatures.Insert(feature)
+	}
+	for _, feature := range features.BackendTLSPolicyExtendedFeatures.UnsortedList() {
+		exemptFeatures.Insert(feature)
+	}
 	return getSupportedFeatures(exemptFeatures)
 }
 
@@ -64,13 +72,6 @@ func GetCommonExemptFeatures() sets.Set[features.Feature] {
 		exemptFeatures.Insert(feature)
 	}
 	for _, feature := range features.MeshExtendedFeatures.UnsortedList() {
-		exemptFeatures.Insert(feature)
-	}
-	// we don't support the BackendTLSPolicy feature at all.
-	for _, feature := range features.BackendTLSPolicyCoreFeatures.UnsortedList() {
-		exemptFeatures.Insert(feature)
-	}
-	for _, feature := range features.BackendTLSPolicyExtendedFeatures.UnsortedList() {
 		exemptFeatures.Insert(feature)
 	}
 	return exemptFeatures
