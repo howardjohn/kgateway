@@ -34,8 +34,7 @@ func TestConformance(t *testing.T) {
 		profiles.Insert(suite.GatewayTLSConformanceProfileName)
 	}
 	options.ConformanceProfiles = profiles
-	options.SkipTests = []string{"BackendTLSPolicyConflictResolution"}
-
+	options.SkipTests = []string{}
 
 	t.Logf("Running conformance tests with\nprofiles: %+v\n", profiles)
 	conformance.RunConformanceWithOptions(t, options)

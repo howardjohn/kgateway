@@ -3,12 +3,14 @@ package utils
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/agentgateway/agentgateway/go/api"
-	"istio.io/istio/pkg/ptr"
+	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
+	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/ptr"
 )
 
 // SingularLLMProviderSubBackendName is the name of the sub-backend for singular LLM providers.
@@ -84,6 +86,17 @@ func ServiceTarget[T ~string](namespace, name string, port *T) *api.PolicyTarget
 	return ServiceTargetWithHostname(namespace, hostname, ls)
 }
 
+func ServicePortTarget(namespace, name string, port uint32) *api.PolicyTarget_Service {
+	hostname := fmt.Sprintf("%s.%s.svc.%s", name, namespace, kubeutils.GetClusterDomainName())
+	return &api.PolicyTarget_Service{
+		Service: &api.PolicyTarget_ServiceTarget{
+			Hostname:  hostname,
+			Namespace: namespace,
+			Port:      &port,
+		},
+	}
+}
+
 func InferencePoolTarget[T ~string](namespace, name string, port *T) *api.PolicyTarget_Service {
 	hostname := fmt.Sprintf("%s.%s.inference.%s", name, namespace, kubeutils.GetClusterDomainName())
 	var ls *string
@@ -149,6 +162,20 @@ func BackendTarget[T ~string](backendNamespace, backendName string, section *T) 
 		},
 	}
 }
+
+var TypedNamespacedNameIndexCollectionFunc = krt.WithIndexCollectionFromString(func(s string) TypedNamespacedName {
+	parts := strings.Split(s, "/")
+	if len(parts) != 3 {
+		panic("invalid TypedNamespacedName: " + s)
+	}
+	return TypedNamespacedName{
+		NamespacedName: types.NamespacedName{
+			Namespace: parts[1],
+			Name:      parts[2],
+		},
+		Kind: parts[0],
+	}
+})
 
 type TypedNamespacedName struct {
 	types.NamespacedName
