@@ -130,7 +130,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        image: cr.agentgateway.dev/agentgateway:0.12.0-alpha.591c78143d25264cb837dff327c93a23ae5951f6
+        image: cr.agentgateway.dev/agentgateway:0.12.0-alpha.f4ce1e890882a8139788264ff983ec2b258f53cf
         name: agentgateway
         ports:
         - containerPort: 15020
