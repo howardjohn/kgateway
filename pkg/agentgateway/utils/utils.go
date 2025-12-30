@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/agentgateway/agentgateway/go/api"
-	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
-	"k8s.io/apimachinery/pkg/types"
-
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/ptr"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
 
 // SingularLLMProviderSubBackendName is the name of the sub-backend for singular LLM providers.

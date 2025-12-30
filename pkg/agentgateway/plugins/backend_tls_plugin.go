@@ -7,21 +7,21 @@ import (
 	"strings"
 
 	"github.com/agentgateway/agentgateway/go/api"
-	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/sslutils"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
-
 	"istio.io/istio/pkg/config/schema/gvk"
 	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/ptr"
 	"istio.io/istio/pkg/slices"
 	"istio.io/istio/pkg/util/sets"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/sslutils"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 )
 
 // NewBackendTLSPlugin creates a new BackendTLSPolicy plugin

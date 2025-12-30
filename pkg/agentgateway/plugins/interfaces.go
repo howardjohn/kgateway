@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/agentgateway/agentgateway/go/api"
-	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"istio.io/istio/pilot/pkg/util/protoconv"
 	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/kube/controllers"
@@ -13,6 +12,7 @@ import (
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/ir"
+	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 )
 

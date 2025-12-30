@@ -52,13 +52,13 @@ type AgentGwStatusSyncer struct {
 
 	cacheSyncs []cache.InformerSynced
 
-	listenerSets StatusSyncer[*gwxv1a1.XListenerSet, *gwxv1a1.ListenerSetStatus]
-	gateways     StatusSyncer[*gwv1.Gateway, *gwv1.GatewayStatus]
-	httpRoutes   StatusSyncer[*gwv1.HTTPRoute, *gwv1.HTTPRouteStatus]
-	grpcRoutes   StatusSyncer[*gwv1.GRPCRoute, *gwv1.GRPCRouteStatus]
-	tcpRoutes    StatusSyncer[*gwv1a2.TCPRoute, *gwv1a2.TCPRouteStatus]
-	tlsRoutes    StatusSyncer[*gwv1a2.TLSRoute, *gwv1a2.TLSRouteStatus]
-	backendTLSPolicies    StatusSyncer[*gwv1.BackendTLSPolicy, *gwv1.PolicyStatus]
+	listenerSets       StatusSyncer[*gwxv1a1.XListenerSet, *gwxv1a1.ListenerSetStatus]
+	gateways           StatusSyncer[*gwv1.Gateway, *gwv1.GatewayStatus]
+	httpRoutes         StatusSyncer[*gwv1.HTTPRoute, *gwv1.HTTPRouteStatus]
+	grpcRoutes         StatusSyncer[*gwv1.GRPCRoute, *gwv1.GRPCRouteStatus]
+	tcpRoutes          StatusSyncer[*gwv1a2.TCPRoute, *gwv1a2.TCPRouteStatus]
+	tlsRoutes          StatusSyncer[*gwv1a2.TLSRoute, *gwv1a2.TLSRouteStatus]
+	backendTLSPolicies StatusSyncer[*gwv1.BackendTLSPolicy, *gwv1.PolicyStatus]
 
 	extraAgwPolicyStatusHandlers map[schema.GroupVersionKind]agwplugins.AgwPolicyStatusSyncHandler
 }
