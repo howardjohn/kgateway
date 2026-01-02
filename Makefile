@@ -827,13 +827,13 @@ CONFORMANCE_TEST_DIR ?= ./test/conformance/...
 .PHONY: conformance ## Run the conformance test suite
 conformance:  ## Run the Gateway API conformance suite
 	@mkdir -p $(TEST_ASSET_DIR)/conformance
-	go test -mod=mod -ldflags='$(LDFLAGS)' -tags conformance -test.v $(CONFORMANCE_TEST_DIR) -args $(CONFORMANCE_ARGS)
+	(cd $(CONFORMANCE_TEST_DIR); go test -mod=mod -ldflags='$(LDFLAGS)' -test.v ./... -args $(CONFORMANCE_ARGS))
 
 # Run only the specified conformance test. The name must correspond to the ShortName of one of the k8s gateway api conformance tests.
 conformance-%:  ## Run only the specified Gateway API conformance test by ShortName
 	@mkdir -p $(TEST_ASSET_DIR)/conformance
-	go test -mod=mod -ldflags='$(LDFLAGS)' -tags conformance -test.v $(CONFORMANCE_TEST_DIR) -args $(CONFORMANCE_ARGS) \
-	-run-test=$*
+	(cd $(CONFORMANCE_TEST_DIR); go test -mod=mod -ldflags='$(LDFLAGS)' -test.v ./... -args $(CONFORMANCE_ARGS) \
+	-run-test=$*)
 
 #----------------------------------------------------------------------------------
 # Targets for running Agent Gateway conformance tests
@@ -847,13 +847,13 @@ AGW_CONFORMANCE_ARGS := -gateway-class=$(AGW_CONFORMANCE_GATEWAY_CLASS) $(AGW_CO
 .PHONY: agw-conformance ## Run the agent gateway conformance test suite
 agw-conformance:
 	@mkdir -p $(TEST_ASSET_DIR)/conformance
-	go test -mod=mod -ldflags='$(LDFLAGS)' -tags conformance -test.v $(CONFORMANCE_TEST_DIR) -args $(AGW_CONFORMANCE_ARGS)
+	(cd $(CONFORMANCE_TEST_DIR); go test -mod=mod -ldflags='$(LDFLAGS)' -test.v ./... -args $(AGW_CONFORMANCE_ARGS))
 
 # Run only the specified agent gateway conformance test
 agw-conformance-%:
 	@mkdir -p $(TEST_ASSET_DIR)/conformance
-	go test -mod=mod -ldflags='$(LDFLAGS)' -tags conformance -test.v $(CONFORMANCE_TEST_DIR) -args $(AGW_CONFORMANCE_ARGS) \
-	-run-test=$*
+	(cd $(CONFORMANCE_TEST_DIR); go test -mod=mod -ldflags='$(LDFLAGS)' -test.v ./... -args $(AGW_CONFORMANCE_ARGS) \
+	-run-test=$*)
 
 #----------------------------------------------------------------------------------
 # Targets for running Gateway API Inference Extension conformance tests

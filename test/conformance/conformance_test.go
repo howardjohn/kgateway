@@ -1,5 +1,3 @@
-//go:build conformance
-
 package conformance_test
 
 import (
@@ -15,8 +13,6 @@ import (
 	"sigs.k8s.io/gateway-api/conformance"
 	"sigs.k8s.io/gateway-api/conformance/utils/suite"
 	"sigs.k8s.io/gateway-api/pkg/features"
-
-	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 )
 
 func TestConformance(t *testing.T) {
@@ -38,7 +34,7 @@ func TestConformance(t *testing.T) {
 	}
 	options.ConformanceProfiles = profiles
 
-	exemptFeatures := deployer.GetCommonExemptFeatures()
+	exemptFeatures := sets.New[features.Feature]()
 
 	if channel == features.FeatureChannelStandard {
 		exemptExperimentalFeatures(exemptFeatures)
