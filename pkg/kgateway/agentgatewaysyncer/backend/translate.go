@@ -6,8 +6,11 @@ import (
 
 	"github.com/agentgateway/agentgateway/go/api"
 	"istio.io/istio/pilot/pkg/model/kstatus"
+	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/ptr"
+	"istio.io/istio/pkg/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,6 +21,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/translator"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
@@ -75,6 +79,7 @@ func BuildAgwBackend(
 func TranslateAgwBackend(
 	ctx plugins.PolicyCtx,
 	backend *agentgateway.AgentgatewayBackend,
+	ancestors krt.IndexCollection[utils.TypedNamespacedName, *utils.AncestorBackend],
 ) (*agentgateway.AgentgatewayBackendStatus, []agwir.AgwResource) {
 	var results []agwir.AgwResource
 	backends, err := BuildAgwBackend(ctx, backend)
@@ -92,15 +97,26 @@ func TranslateAgwBackend(
 		}, results
 	}
 
-	// handle all backends created as an MCPBackend backend may create multiple backends
-	for _, backend := range backends {
-		logger.Debug("creating backend", "backend", backend.Name)
-		resourceWrapper := translator.ToResourceGlobal(&api.Resource{
-			Kind: &api.Resource_Backend{
-				Backend: backend,
-			},
-		})
-		results = append(results, resourceWrapper)
+	gtws := krt.FetchOne(ctx.Krt, ancestors, krt.FilterKey(utils.TypedNamespacedName{
+		NamespacedName: config.NamespacedName(backend),
+		Kind:           wellknown.AgentgatewayBackendGVK.Kind,
+	}.String()))
+	if gtws != nil {
+		log.Errorf("howardjohn: for BE %v got gtws %v", backend.Name, slices.Map(gtws.Objects, func(u *utils.AncestorBackend) string {
+			return u.Gateway.String()
+		}))
+	}
+	for _, gateways := range gtws.Objects {
+		// handle all backends created as an MCPBackend backend may create multiple backends
+		for _, backend := range backends {
+			logger.Debug("creating backend", "backend", backend.Name)
+			resourceWrapper := translator.ToResourceForGateway(gateways.Gateway, &api.Resource{
+				Kind: &api.Resource_Backend{
+					Backend: backend,
+				},
+			})
+			results = append(results, resourceWrapper)
+		}
 	}
 
 	return &agentgateway.AgentgatewayBackendStatus{

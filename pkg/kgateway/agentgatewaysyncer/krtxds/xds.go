@@ -90,6 +90,7 @@ func (d DiscoveryResource) Equals(other DiscoveryResource) bool {
 }
 
 func (d DiscoveryResource) IsForGateway(other types.NamespacedName) bool {
+	//d.Analyze(other)
 	// Not scoped || collection is scoped but this resource isn't || it is scoped to this one
 	return d.ForGateway == nil || *d.ForGateway == (types.NamespacedName{}) || *d.ForGateway == other
 }
@@ -108,7 +109,7 @@ func getKey[T any](t T) string {
 	return krt.GetKey(t)
 }
 
-func PerGatewayCollection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], extract func(o T) types.NamespacedName, krtopts krtutil.KrtOptions) Registration {
+func PerGatewayCollection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], extract func(o T) types.NamespacedName, analyze func(o T, gw types.NamespacedName), krtopts krtutil.KrtOptions) Registration {
 	return func(m map[string]CollectionGenerator, pushChannel chan *PushRequest) CollectionRegistration {
 		nc := krt.NewCollection(collection, func(ctx krt.HandlerContext, i T) *DiscoveryResource {
 			var forGateway *types.NamespacedName
@@ -125,6 +126,11 @@ func PerGatewayCollection[T IntoProto[TT], TT proto.Message](collection krt.Coll
 					Metadata:     nil,
 				},
 				ForGateway: forGateway,
+				//Analyze: func(gw types.NamespacedName) {
+				//	if analyze != nil {
+				//		analyze(i, gw)
+				//	}
+				//},
 			}
 		}, krtopts.ToOptions(fmt.Sprintf("XDS/%s", TypeName[TT]()))...)
 
@@ -161,7 +167,7 @@ func PerGatewayCollection[T IntoProto[TT], TT proto.Message](collection krt.Coll
 }
 
 func Collection[T IntoProto[TT], TT proto.Message](collection krt.Collection[T], krtopts krtutil.KrtOptions) Registration {
-	return PerGatewayCollection(collection, nil, krtopts)
+	return PerGatewayCollection(collection, nil, nil, krtopts)
 }
 
 var (

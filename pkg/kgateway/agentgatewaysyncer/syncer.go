@@ -14,6 +14,7 @@ import (
 	"istio.io/istio/pkg/config"
 	"istio.io/istio/pkg/config/mesh"
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/network"
 	"istio.io/istio/pkg/ptr"
 	"istio.io/istio/pkg/slices"
@@ -333,10 +334,14 @@ func (s *Syncer) buildAgwResources(
 		agwRoutes = krt.JoinCollection([]krt.Collection[agwir.AgwResource]{agwRoutes, s.agwPlugins.AddResourceExtension.Routes})
 	}
 
-	agwPolicies, policyStatuses := AgwPolicyCollection(s.agwPlugins, ancestorBackends, krtopts)
+	ancestorsIndex := krt.NewIndex(ancestorBackends, "ancestors", func(o *utils.AncestorBackend) []utils.TypedNamespacedName {
+		return []utils.TypedNamespacedName{o.Backend}
+	})
+	ancestorCollection := ancestorsIndex.AsCollection(append(krtopts.ToOptions("AncestorBackend"), utils.TypedNamespacedNameIndexCollectionFunc)...)
+	agwPolicies, policyStatuses := AgwPolicyCollection(s.agwPlugins, ancestorCollection, krtopts)
 
 	// Create an agentgateway backend collection from the kgateway backend resources
-	agwBackendStatus, agwBackends := s.newAgwBackendCollection(s.agwCollections.Backends, krtopts)
+	agwBackendStatus, agwBackends := s.newAgwBackendCollection(s.agwCollections.Backends, ancestorCollection, krtopts)
 
 	// Join all Agw resources
 	allAgwResources := krt.JoinCollection([]krt.Collection[agwir.AgwResource]{binds, listeners, agwRoutes, agwPolicies, agwBackends}, krtopts.ToOptions("Resources")...)
@@ -369,7 +374,7 @@ func (s *Syncer) buildListenerFromGateway(obj *translator.GatewayListener) *agwi
 }
 
 // newAgwBackendCollection creates the ADP backend collection for agent gateway resources
-func (s *Syncer) newAgwBackendCollection(finalBackends krt.Collection[*agentgateway.AgentgatewayBackend], krtopts krtutil.KrtOptions) (
+func (s *Syncer) newAgwBackendCollection(finalBackends krt.Collection[*agentgateway.AgentgatewayBackend], ancestors krt.IndexCollection[utils.TypedNamespacedName, *utils.AncestorBackend], krtopts krtutil.KrtOptions) (
 	krt.StatusCollection[*agentgateway.AgentgatewayBackend, agentgateway.AgentgatewayBackendStatus],
 	krt.Collection[agwir.AgwResource],
 ) {
@@ -381,7 +386,7 @@ func (s *Syncer) newAgwBackendCollection(finalBackends krt.Collection[*agentgate
 			Krt:         ctx,
 			Collections: s.agwCollections,
 		}
-		return agentgatewaybackend.TranslateAgwBackend(pc, backend)
+		return agentgatewaybackend.TranslateAgwBackend(pc, backend, ancestors)
 	}, krtopts.ToOptions("Backends")...)
 }
 
@@ -521,7 +526,37 @@ func (s *Syncer) buildXDSCollection(
 		return resource.Gateway
 	}
 	s.Registrations = append(s.Registrations, krtxds.Collection[Address, *workloadapi.Address](xdsAddresses, krtopts))
-	s.Registrations = append(s.Registrations, krtxds.PerGatewayCollection[agwir.AgwResource, *api.Resource](agwResources, agwResourcesByGateway, krtopts))
+	s.Registrations = append(s.Registrations, krtxds.PerGatewayCollection[agwir.AgwResource, *api.Resource](agwResources, agwResourcesByGateway, func(o agwir.AgwResource, gw types.NamespacedName) {
+		name := o.ResourceName()
+		var match *bool = nil
+		switch t := o.Resource.Kind.(type) {
+
+		case *api.Resource_Route:
+		case *api.Resource_TcpRoute:
+		case *api.Resource_Listener:
+			//t.Listener.Name.
+		case *api.Resource_Bind:
+		case *api.Resource_Backend:
+		case *api.Resource_Policy:
+			tgt := t.Policy.Target
+			switch tt := tgt.Kind.(type) {
+			case *api.PolicyTarget_Gateway:
+				match = ptr.Of(tt.Gateway.Namespace == gw.Namespace && tt.Gateway.Name == gw.Name)
+			case *api.PolicyTarget_Route:
+				//tt.Route.Name
+
+			case *api.PolicyTarget_Backend:
+
+			case *api.PolicyTarget_Service:
+
+			}
+		}
+		if match == nil {
+			log.Errorf("howardjohn: is %v for %v? UNKNOWN", name, gw)
+		} else {
+			log.Errorf("howardjohn: is %v for %v? %v", name, gw, *match)
+		}
+	}, krtopts))
 }
 
 func (s *Syncer) setupSyncDependencies(
