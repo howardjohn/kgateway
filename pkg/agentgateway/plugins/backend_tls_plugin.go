@@ -151,7 +151,7 @@ func translatePoliciesForBackendTLS(
 						for _, p := range svc.Spec.Ports {
 							if p.Name == string(*sn) {
 								policyTarget = &api.PolicyTarget{
-									Kind: utils.ServicePortTarget(btls.Namespace, string(target.Name), uint32(p.Port)),
+									Kind: utils.ServicePortTarget(btls.Namespace, string(target.Name), uint32(p.Port)), // nolint:gosec // G115: kubebuilder validation ensures safe for uint32
 								}
 								break
 							}

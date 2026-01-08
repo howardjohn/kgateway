@@ -615,7 +615,7 @@ func (r RouteAttachment) Equals(other RouteAttachment) bool {
 func extractAncestorBackends[RT, BT any](ns string, prefs []gwv1.ParentReference, rules []RT, extract func(RT) []BT) []*utils.AncestorBackend {
 	gateways := sets.Set[types.NamespacedName]{}
 	for _, r := range prefs {
-		ref := normalizeReference(r.Group, r.Kind, wellknown.GatewayGVK)
+		ref := NormalizeReference(r.Group, r.Kind, wellknown.GatewayGVK)
 		if ref != wellknown.GatewayGVK {
 			continue
 		}
@@ -655,11 +655,11 @@ func extractAncestorBackends[RT, BT any](ns string, prefs []gwv1.ParentReference
 func GetBackendRef[I any](spec I) (schema.GroupVersionKind, *gwv1.Namespace, gwv1.ObjectName) {
 	switch t := any(spec).(type) {
 	case gwv1.HTTPBackendRef:
-		return normalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
+		return NormalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
 	case gwv1.GRPCBackendRef:
-		return normalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
+		return NormalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
 	case gwv1.BackendRef:
-		return normalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
+		return NormalizeReference(t.Group, t.Kind, wellknown.ServiceGVK), t.Namespace, t.Name
 	default:
 		log.Fatalf("unknown GetBackendRef type %T", t)
 		return schema.GroupVersionKind{}, nil, ""
