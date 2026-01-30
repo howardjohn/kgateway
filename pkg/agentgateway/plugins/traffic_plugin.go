@@ -158,7 +158,10 @@ func TranslateAgentgatewayPolicy(
 			}
 			// TODO: add support for inferencepool https://github.com/kgateway-dev/kgateway/issues/13295
 			// TODO: add support for XListenerSet https://github.com/kgateway-dev/kgateway/issues/13296
-
+		case schema.GroupKind{Group: "networking.istio.io", Kind: "Hostname"}:
+			policyTarget = &api.PolicyTarget{
+				Kind: utils.HostnameTarget(policy.Namespace, string(target.Name), target.SectionName),
+			}
 		default:
 			// TODO(npolshak): support attaching policies to k8s services, serviceentries, and other backends
 			logger.Warn("unsupported target kind", "kind", target.Kind, "policy", policy.Name)

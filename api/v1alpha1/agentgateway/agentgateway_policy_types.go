@@ -63,7 +63,7 @@ type AgentgatewayPolicySpec struct {
 	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=16
-	// +kubebuilder:validation:XValidation:rule="self.all(r, (r.kind == 'Service' && r.group == '') || (r.kind == 'AgentgatewayBackend' && r.group == 'agentgateway.dev') || (r.kind in ['Gateway', 'HTTPRoute', 'GRPCRoute'] && r.group == 'gateway.networking.k8s.io') || (r.kind == 'XListenerSet' && r.group == 'gateway.networking.x-k8s.io'))",message="targetRefs may only reference Gateway, HTTPRoute, GRPCRoute, XListenerSet, Service, or AgentgatewayBackend resources"
+	// +kubebuilder:validation:XValidation:rule="self.all(r, (r.kind == 'Service' && r.group == '') || (r.kind == 'AgentgatewayBackend' && r.group == 'agentgateway.dev') || (r.kind in ['Gateway', 'HTTPRoute', 'GRPCRoute'] && r.group == 'gateway.networking.k8s.io') || (r.kind == 'XListenerSet' && r.group == 'gateway.networking.x-k8s.io')  || (r.kind == 'Hostname' && r.group == 'networking.istio.io'))",message="targetRefs may only reference Hostname, Gateway, HTTPRoute, GRPCRoute, XListenerSet, Service, or AgentgatewayBackend resources"
 	// +kubebuilder:validation:XValidation:message="Only one Kind of targetRef can be set on one policy",rule="self.all(l1, !self.exists(l2, l1.kind != l2.kind))"
 	// +optional
 	TargetRefs []shared.LocalPolicyTargetReferenceWithSectionName `json:"targetRefs,omitempty"`
@@ -128,13 +128,15 @@ type BackendSimple struct {
 	// http defines settings for managing HTTP requests to the backend.
 	// +optional
 	HTTP *BackendHTTP `json:"http,omitempty"`
-
+	// tunnel defines settings for managing tunnel (CONNECT) connections to the backend.
+	// +optional
+	Tunnel *BackendTunnel `json:"tunnel,omitempty"`
 	// auth defines settings for managing authentication to the backend
 	// +optional
 	Auth *BackendAuth `json:"auth,omitempty"`
 }
 
-// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;auth;mcp
+// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;tunnel;auth;mcp
 type BackendWithMCP struct {
 	BackendSimple `json:",inline"`
 
@@ -143,7 +145,7 @@ type BackendWithMCP struct {
 	MCP *BackendMCP `json:"mcp,omitempty"`
 }
 
-// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;auth;ai
+// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;tunnel;auth;ai
 type BackendWithAI struct {
 	BackendSimple `json:",inline"`
 
@@ -152,7 +154,7 @@ type BackendWithAI struct {
 	AI *BackendAI `json:"ai,omitempty"`
 }
 
-// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;auth;mcp;ai
+// +kubebuilder:validation:AtLeastOneOf=tcp;tls;http;tunnel;auth;mcp;ai
 type BackendFull struct {
 	BackendSimple `json:",inline"`
 
@@ -977,6 +979,13 @@ type BackendTCP struct {
 	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('100ms')",message="connectTimeout must be at least 100ms"
 	// +optional
 	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
+}
+
+type BackendTunnel struct {
+	// backendRef references the proxy tunnel server to reach.
+	// Supported types: Service and AgentgatewayBackend.
+	// +required
+	BackendRef gwv1.BackendObjectReference `json:"backendRef"`
 }
 
 // +kubebuilder:validation:AtLeastOneOf=request;response

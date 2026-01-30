@@ -29,6 +29,7 @@ const (
 	backendTlsPolicySuffix        = ":backend-tls"
 	backendauthPolicySuffix       = ":backend-auth"
 	tlsPolicySuffix               = ":tls"
+	tunnelPolicySuffix            = ":tunnel"
 	backendHttpPolicySuffix       = ":backend-http"
 	mcpAuthorizationPolicySuffix  = ":mcp-authorization"
 	mcpAuthenticationPolicySuffix = ":mcp-authentication"
@@ -89,6 +90,15 @@ func translateBackendPolicyToAgw(
 		agwPolicies = append(agwPolicies, pol...)
 	}
 
+	if s := backend.Tunnel; s != nil {
+		pol, err := translateBackendTunnel(ctx, policy, policyName, policyTarget)
+		if err != nil {
+			logger.Error("error processing backend Tunnel", "err", err)
+			errs = append(errs, err)
+		}
+		agwPolicies = append(agwPolicies, pol...)
+	}
+
 	if s := backend.MCP; s != nil {
 		if backend.MCP.Authorization != nil {
 			pol := translateBackendMCPAuthorization(policy, policyTarget)
@@ -129,6 +139,36 @@ func translateBackendPolicyToAgw(
 func translateBackendTCP(ctx PolicyCtx, policy *agentgateway.AgentgatewayPolicy, name string, target *api.PolicyTarget) ([]AgwPolicy, error) {
 	// TODO
 	return nil, nil
+}
+
+func translateBackendTunnel(ctx PolicyCtx, policy *agentgateway.AgentgatewayPolicy, name string, target *api.PolicyTarget) ([]AgwPolicy, error) {
+	tun := policy.Spec.Backend.Tunnel
+	var backendErr error
+	proxy, err := buildBackendRef(ctx, tun.BackendRef, policy.Namespace)
+	if err != nil {
+		backendErr = fmt.Errorf("failed to build tunnel: %v", err)
+	}
+
+	tunnelPolicy := &api.Policy{
+		Key:    policy.Namespace + "/" + policy.Name + tunnelPolicySuffix + attachmentName(target),
+		Name:   TypedResourceName(wellknown.AgentgatewayPolicyGVK.Kind, policy),
+		Target: target,
+		Kind: &api.Policy_Backend{
+			Backend: &api.BackendPolicySpec{
+				Kind: &api.BackendPolicySpec_BackendTunnel_{
+					BackendTunnel: &api.BackendPolicySpec_BackendTunnel{
+						Proxy: proxy,
+					},
+				},
+			},
+		},
+	}
+
+	logger.Debug("generated Tunnel policy",
+		"policy", policy.Name,
+		"agentgateway_policy", tunnelPolicy.Name)
+
+	return []AgwPolicy{{Policy: tunnelPolicy}}, backendErr
 }
 
 func translateBackendTLS(ctx PolicyCtx, policy *agentgateway.AgentgatewayPolicy, target *api.PolicyTarget) ([]AgwPolicy, error) {
