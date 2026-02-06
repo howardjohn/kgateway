@@ -43,15 +43,6 @@ var AllCRDs = []schema.GroupVersionResource{
 	gvr.ServiceEntry,
 	gvr.WorkloadEntry,
 	gvr.AuthorizationPolicy,
-	// kgateway API
-	wellknown.BackendGVR,
-	wellknown.BackendConfigPolicyGVR,
-	wellknown.TrafficPolicyGVR,
-	wellknown.HTTPListenerPolicyGVR,
-	wellknown.ListenerPolicyGVR,
-	wellknown.DirectResponseGVR,
-	wellknown.GatewayExtensionGVR,
-	wellknown.GatewayParametersGVR,
 	// agentgateway api
 	wellknown.AgentgatewayBackendGVR,
 	wellknown.AgentgatewayParametersGVR,

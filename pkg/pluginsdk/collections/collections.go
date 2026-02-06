@@ -1,8 +1,6 @@
 package collections
 
 import (
-	"context"
-
 	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
@@ -36,7 +34,5 @@ func NewCommonCollections(
 		Settings:          settings,
 		ControllerName:             controllerName,
 		AgentgatewayControllerName: agentGatewayControllerName,
-
-		options: options,
 	}, nil
 }

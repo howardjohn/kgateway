@@ -16,7 +16,6 @@ import (
 	gwv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwxv1a1 "sigs.k8s.io/gateway-api/apisx/v1alpha1"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
@@ -175,7 +174,7 @@ func (r *ReportMap) BuildListenerSetStatus(ctx context.Context, ls gwxv1a1.XList
 
 	if !listenerSetRejected(lsReport) {
 		for _, l := range ls.Spec.Listeners {
-			lis := utils.ToListener(l)
+			lis := ToListener(l)
 			lisReport := lsReport.listener(string(lis.Name))
 			AddMissingListenerConditions(lisReport)
 
@@ -538,5 +537,17 @@ func addMissingParentRefConditions(report *ParentRefReport) {
 			Reason:  gwv1.RouteReasonResolvedRefs,
 			Message: ValidRefsMessage,
 		})
+	}
+}
+
+func ToListener(listenerEntry gwxv1a1.ListenerEntry) gwv1.Listener {
+	duplicate := listenerEntry.DeepCopy()
+	return gwv1.Listener{
+		Name:          duplicate.Name,
+		Hostname:      duplicate.Hostname,
+		Port:          duplicate.Port,
+		Protocol:      duplicate.Protocol,
+		TLS:           duplicate.TLS,
+		AllowedRoutes: duplicate.AllowedRoutes,
 	}
 }

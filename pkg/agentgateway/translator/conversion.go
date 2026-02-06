@@ -34,7 +34,6 @@ import (
 	gatewayx "sigs.k8s.io/gateway-api/apisx/v1alpha1"
 
 	v1alpha2 "github.com/kgateway-dev/kgateway/v2/api/v1alpha1/agentgateway"
-	agwir "github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/ir"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/utils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
@@ -81,10 +80,6 @@ func ConvertHTTPRouteToAgw(ctx RouteContext, r gwv1.HTTPRouteRule,
 			Reason:  "TranslationError",
 			Message: fmt.Sprintf("failed to apply builtin route retries: %v", err),
 		}
-	}
-
-	if pluginErr := applyPluginPasses(ctx, &r, res); pluginErr != nil {
-		return nil, pluginErr
 	}
 
 	backends, backendErr, err := buildAgwHTTPDestination(ctx, r.BackendRefs, obj.Namespace)

@@ -8,15 +8,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/listener"
 	"istio.io/istio/pkg/slices"
 	"istio.io/istio/pkg/util/smallset"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/shared"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/validate"
 )
 
@@ -105,7 +102,7 @@ func GetPortsValues(gw *GatewayForDeployer, agentgateway bool) []HelmPort {
 
 	// Add ports from Gateway listeners
 	for _, port := range gw.Ports.List() {
-		portName := listener.GenerateListenerNameFromPort(port)
+		portName := GenerateListenerNameFromPort(port)
 		if err := validate.ListenerPortForParent(port, agentgateway); err != nil {
 			// skip invalid ports; statuses are handled in the translator
 			logger.Error("skipping port", "gateway", gw.ResourceName(), "error", err)
@@ -179,25 +176,6 @@ func GetLoadBalancerIPFromGatewayAddresses(gw *gwv1.Gateway) (*string, error) {
 	return nil, ErrNoValidIPAddress
 }
 
-// SetLoadBalancerIPFromGateway extracts the IP address from Gateway.spec.addresses
-// and sets it on the HelmService if the service type is LoadBalancer.
-// Only sets the IP if exactly one valid IP address is found in Gateway.spec.addresses.
-// Returns an error if more than one address is specified or no valid IP address is found.
-func SetLoadBalancerIPFromGateway(gw *gwv1.Gateway, svc *HelmService) error {
-	// Only extract IP if service type is LoadBalancer
-	if svc.Type == nil || *svc.Type != string(corev1.ServiceTypeLoadBalancer) {
-		return nil
-	}
-
-	ip, err := GetLoadBalancerIPFromGatewayAddresses(gw)
-	if err != nil {
-		return err
-	}
-	if ip != nil {
-		svc.LoadBalancerIP = ip
-	}
-	return nil
-}
 
 // SetLoadBalancerIPFromGatewayForAgentgateway extracts the IP address from Gateway.spec.addresses
 // and sets it on the AgentgatewayHelmService.
@@ -213,21 +191,6 @@ func SetLoadBalancerIPFromGatewayForAgentgateway(gw *gwv1.Gateway, svc *Agentgat
 		svc.LoadBalancerIP = ip
 	}
 	return nil
-}
-
-func toHelmStringMatcher(l []shared.StringMatcher) []HelmStringMatcher {
-	out := make([]HelmStringMatcher, 0, len(l))
-	for _, sm := range l {
-		out = append(out, HelmStringMatcher{
-			Exact:      sm.Exact,
-			Prefix:     sm.Prefix,
-			Suffix:     sm.Suffix,
-			Contains:   sm.Contains,
-			SafeRegex:  sm.SafeRegex,
-			IgnoreCase: sm.IgnoreCase,
-		})
-	}
-	return out
 }
 
 // ComponentLogLevelsToString converts the key-value pairs in the map into a string of the
@@ -249,4 +212,9 @@ func ComponentLogLevelsToString(vals map[string]string) (string, error) {
 	}
 	sort.Strings(parts)
 	return strings.Join(parts, ","), nil
+}
+
+func GenerateListenerNameFromPort(port gwv1.PortNumber) string {
+	// Add a ~ to make sure the name won't collide with user provided names in other listeners
+	return fmt.Sprintf("listener~%d", port)
 }

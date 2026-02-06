@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -79,26 +78,6 @@ const (
 	WebSocketAppProtocol AppProtocol = "ws"
 )
 
-// ParseAppProtocol takes an app protocol string provided on a Backend or Kubernetes Service, and maps it
-// to one of the app protocol types supported by kgateway (http2, websocket, or default).
-// Recognizes http2 app protocols defined by istio (https://istio.io/latest/docs/ops/configuration/traffic-management/protocol-selection/)
-// and GEP-1911 (https://gateway-api.sigs.k8s.io/geps/gep-1911/#api-semantics).
-func ParseAppProtocol(appProtocol *string) AppProtocol {
-	switch strings.ToLower(ptr.Deref(appProtocol, "")) {
-	case string(kgateway.AppProtocolHttp2):
-		fallthrough
-	case string(kgateway.AppProtocolGrpc):
-		fallthrough
-	case string(kgateway.AppProtocolGrpcWeb):
-		fallthrough
-	case string(kgateway.AppProtocolKubernetesH2C):
-		return HTTP2AppProtocol
-	case string(kgateway.AppProtocolKubernetesWs):
-		return WebSocketAppProtocol
-	default:
-		return DefaultAppProtocol
-	}
-}
 
 type BackendObjectIR struct {
 	// Ref to source object. sometimes the group and kind are not populated from api-server, so
