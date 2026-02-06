@@ -139,25 +139,6 @@ func processRouteMatches(r *gwv1.HTTPRouteRule, res *api.Route) error {
 	return nil
 }
 
-// Helper function to apply plugin passes
-func applyPluginPasses(ctx RouteContext, r *gwv1.HTTPRouteRule, res *api.Route) *reporter.RouteCondition {
-	agwRouteContext := agwir.AgwRouteContext{
-		Rule: r,
-	}
-
-	for _, pass := range ctx.pluginPasses {
-		if err := pass.ApplyForRoute(&agwRouteContext, res); err != nil {
-			return &reporter.RouteCondition{
-				Type:    gwv1.RouteConditionAccepted,
-				Status:  metav1.ConditionFalse,
-				Reason:  "PluginError",
-				Message: fmt.Sprintf("failed to apply plugin: %v", err),
-			}
-		}
-	}
-	return nil
-}
-
 // Helper function to convert hostnames
 func convertHostnames(hostnames []gwv1.Hostname) []string {
 	return slices.Map(hostnames, func(h gwv1.Hostname) string {

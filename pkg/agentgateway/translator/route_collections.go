@@ -515,7 +515,6 @@ type RouteContext struct {
 	Krt krt.HandlerContext
 	RouteContextInputs
 	AttachedPolicies ir.AttachedPolicies
-	pluginPasses     []agwir.AgwTranslationPass
 }
 
 // RouteContextInputs defines the collections needed to translate a route.
