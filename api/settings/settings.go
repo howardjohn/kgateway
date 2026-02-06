@@ -204,12 +204,6 @@ type Settings struct {
 	// E.g., [{"matchExpressions":[{"key":"kubernetes.io/metadata.name","operator":"In","values":["infra"]}]},{"matchLabels":{"app":"a"}}]
 	DiscoveryNamespaceSelectors string `split_words:"true" default:"[]"`
 
-	// EnableEnvoy enables kgateway to send config to Envoy
-	EnableEnvoy bool `split_words:"true" default:"true"`
-
-	// EnableAgentgateway enables kgateway to send config to Agentgateway
-	EnableAgentgateway bool `split_words:"true" default:"true"`
-
 	// WeightedRoutePrecedence enables routes with a larger weight to take precedence over routes with a smaller weight.
 	// If two routes have the same weight, Gateway API route precedence rules apply.
 	// When enabled, the default weight for a route is 0.

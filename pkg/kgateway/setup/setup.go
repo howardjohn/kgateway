@@ -199,13 +199,6 @@ func WithExtraAgwResourceStatusHandlers(handlers map[schema.GroupVersionKind]agw
 		s.extraAgwPolicyStatusHandlers = handlers
 	}
 }
-
-func WithCommonCollectionsOptions(commonCollectionsOptions []collections.Option) func(*setup) {
-	return func(s *setup) {
-		s.commonCollectionsOptions = commonCollectionsOptions
-	}
-}
-
 func WithStatusSyncerOptions(statusSyncerOptions []proxy_syncer.StatusSyncerOption) func(*setup) {
 	return func(s *setup) {
 		s.statusSyncerOptions = statusSyncerOptions
@@ -246,7 +239,6 @@ type setup struct {
 	validator                    validator.Validator
 	extraAgwPolicyStatusHandlers map[schema.GroupVersionKind]agwplugins.AgwResourceStatusSyncHandler
 
-	commonCollectionsOptions  []collections.Option
 	statusSyncerOptions       []proxy_syncer.StatusSyncerOption
 	agentgatewaySyncerOptions []agentgatewaysyncer.AgentgatewaySyncerOption
 }
@@ -409,13 +401,11 @@ func (s *setup) Start(ctx context.Context) error {
 	krtOpts := krtutil.NewKrtOptions(ctx.Done(), setupOpts.KrtDebugger)
 
 	commoncol, err := collections.NewCommonCollections(
-		ctx,
 		krtOpts,
 		s.apiClient,
 		s.gatewayControllerName,
 		s.agwControllerName,
 		*s.globalSettings,
-		s.commonCollectionsOptions...,
 	)
 	if err != nil {
 		slog.Error("error creating common collections", "error", err)

@@ -8,16 +8,16 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/listener"
 	"istio.io/istio/pkg/slices"
+	"istio.io/istio/pkg/util/smallset"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/shared"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/translator/listener"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/validate"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
 )
 
 var (
@@ -35,10 +35,72 @@ var ComponentLogLevelEmptyError = func(key string, value string) error {
 	return fmt.Errorf("an empty key or value was provided in componentLogLevels: key=%s, value=%s", key, value)
 }
 
+
+// TODODONOTMERGE
+type GatewayForDeployer struct {
+	ObjectSource
+	// Controller name for the gateway
+	ControllerName string
+	// All ports from all listeners
+	Ports smallset.Set[int32]
+}
+
+type ObjectSource struct {
+	Group     string `json:"group,omitempty"`
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name"`
+}
+
+// GetKind returns the kind of the route.
+func (c ObjectSource) GetGroupKind() schema.GroupKind {
+	return schema.GroupKind{
+		Group: c.Group,
+		Kind:  c.Kind,
+	}
+}
+
+// GetName returns the name of the route.
+func (c ObjectSource) GetName() string {
+	return c.Name
+}
+
+// GetNamespace returns the namespace of the route.
+func (c ObjectSource) GetNamespace() string {
+	return c.Namespace
+}
+
+func (c ObjectSource) ResourceName() string {
+	return fmt.Sprintf("%s/%s/%s/%s", c.Group, c.Kind, c.Namespace, c.Name)
+}
+
+func (c ObjectSource) String() string {
+	return fmt.Sprintf("%s/%s/%s/%s", c.Group, c.Kind, c.Namespace, c.Name)
+}
+
+func (c ObjectSource) Equals(in ObjectSource) bool {
+	return c.Namespace == in.Namespace && c.Name == in.Name && c.Group == in.Group && c.Kind == in.Kind
+}
+
+func (c ObjectSource) NamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: c.Namespace,
+		Name:      c.Name,
+	}
+}
+func (c GatewayForDeployer) ResourceName() string {
+	return c.ObjectSource.ResourceName()
+}
+
+func (c GatewayForDeployer) Equals(in GatewayForDeployer) bool {
+	return c.ObjectSource.Equals(in.ObjectSource) &&
+		c.ControllerName == in.ControllerName &&
+		slices.Equal(c.Ports.List(), in.Ports.List())
+}
 // Extract the listener ports from a Gateway and corresponding listener sets. These will be used to populate:
 // 1. the ports exposed on the envoy container
 // 2. the ports exposed on the proxy service
-func GetPortsValues(gw *ir.GatewayForDeployer, gwp *kgateway.GatewayParameters, agentgateway bool) []HelmPort {
+func GetPortsValues(gw *GatewayForDeployer, agentgateway bool) []HelmPort {
 	gwPorts := []HelmPort{}
 
 	// Add ports from Gateway listeners
@@ -49,24 +111,7 @@ func GetPortsValues(gw *ir.GatewayForDeployer, gwp *kgateway.GatewayParameters, 
 			logger.Error("skipping port", "gateway", gw.ResourceName(), "error", err)
 			continue
 		}
-		gwPorts = AppendPortValue(gwPorts, port, portName, gwp)
-	}
-
-	// Add ports from GatewayParameters.Service.Ports
-	// Merge user-defined service ports with auto-generated listener ports
-	// Without this, user-specified ports would be ignored, causing service connectivity issues
-	if gwp != nil && gwp.Spec.GetKube() != nil && gwp.Spec.GetKube().GetService() != nil {
-		servicePorts := gwp.Spec.GetKube().GetService().GetPorts()
-		for _, servicePort := range servicePorts {
-			portValue := servicePort.GetPort()
-			l := ir.Listener{
-				Listener: gwv1.Listener{
-					Port: gwv1.PortNumber(portValue),
-				},
-			}
-			portName := listener.GenerateListenerName(l)
-			gwPorts = AppendPortValue(gwPorts, portValue, portName, gwp)
-		}
+		gwPorts = AppendPortValue(gwPorts, port, portName)
 	}
 
 	return gwPorts
@@ -86,7 +131,7 @@ func SanitizePortName(name string) string {
 	return str
 }
 
-func AppendPortValue(gwPorts []HelmPort, port int32, name string, gwp *kgateway.GatewayParameters) []HelmPort {
+func AppendPortValue(gwPorts []HelmPort, port int32, name string) []HelmPort {
 	if slices.IndexFunc(gwPorts, func(p HelmPort) bool { return *p.Port == port }) != -1 {
 		return gwPorts
 	}
@@ -94,55 +139,12 @@ func AppendPortValue(gwPorts []HelmPort, port int32, name string, gwp *kgateway.
 	portName := SanitizePortName(name)
 	protocol := "TCP"
 
-	// Search for static NodePort set from the GatewayParameters spec
-	// If not found the default value of `nil` will not render anything.
-	var nodePort *int32 = nil
-	if gwp != nil && gwp.Spec.GetKube().GetService().GetType() != nil && *(gwp.Spec.GetKube().GetService().GetType()) == corev1.ServiceTypeNodePort {
-		if idx := slices.IndexFunc(gwp.Spec.GetKube().GetService().GetPorts(), func(p kgateway.Port) bool {
-			return p.GetPort() == port
-		}); idx != -1 {
-			nodePort = gwp.Spec.GetKube().GetService().GetPorts()[idx].GetNodePort()
-		}
-	}
 	return append(gwPorts, HelmPort{
 		Port:       &port,
 		TargetPort: &port,
 		Name:       &portName,
 		Protocol:   &protocol,
-		NodePort:   nodePort,
 	})
-}
-
-// Convert service values from GatewayParameters into helm values to be used by the deployer.
-func GetServiceValues(svcConfig *kgateway.Service) *HelmService {
-	// convert the service type enum to its string representation;
-	// if type is not set, it will default to 0 ("ClusterIP")
-	var svcType *string
-	var clusterIP *string
-	var extraAnnotations map[string]string
-	var extraLabels map[string]string
-	var externalTrafficPolicy *string
-	var loadBalancerClass *string
-
-	if svcConfig != nil {
-		if svcConfig.GetType() != nil {
-			svcType = ptr.To(string(*svcConfig.GetType()))
-		}
-		clusterIP = svcConfig.GetClusterIP()
-		extraAnnotations = svcConfig.GetExtraAnnotations()
-		extraLabels = svcConfig.GetExtraLabels()
-		externalTrafficPolicy = svcConfig.GetExternalTrafficPolicy()
-		loadBalancerClass = svcConfig.GetLoadBalancerClass()
-	}
-
-	return &HelmService{
-		Type:                  svcType,
-		ClusterIP:             clusterIP,
-		ExtraAnnotations:      extraAnnotations,
-		ExtraLabels:           extraLabels,
-		ExternalTrafficPolicy: externalTrafficPolicy,
-		LoadBalancerClass:     loadBalancerClass,
-	}
 }
 
 // GetLoadBalancerIPFromGatewayAddresses extracts the IP address from Gateway.spec.addresses.
@@ -211,110 +213,6 @@ func SetLoadBalancerIPFromGatewayForAgentgateway(gw *gwv1.Gateway, svc *Agentgat
 		svc.LoadBalancerIP = ip
 	}
 	return nil
-}
-
-// Convert service account values from GatewayParameters into helm values to be used by the deployer.
-func GetServiceAccountValues(svcAccountConfig *kgateway.ServiceAccount) *HelmServiceAccount {
-	return &HelmServiceAccount{
-		ExtraAnnotations: svcAccountConfig.GetExtraAnnotations(),
-		ExtraLabels:      svcAccountConfig.GetExtraLabels(),
-	}
-}
-
-// Convert sds values from GatewayParameters into helm values to be used by the deployer.
-func GetSdsContainerValues(sdsContainerConfig *kgateway.SdsContainer) *HelmSdsContainer {
-	if sdsContainerConfig == nil {
-		return nil
-	}
-
-	vals := &HelmSdsContainer{
-		Image:           GetImageValues(sdsContainerConfig.GetImage()),
-		Resources:       sdsContainerConfig.GetResources(),
-		SecurityContext: sdsContainerConfig.GetSecurityContext(),
-		SdsBootstrap:    &SdsBootstrap{},
-	}
-
-	if bootstrap := sdsContainerConfig.GetBootstrap(); bootstrap != nil {
-		vals.SdsBootstrap = &SdsBootstrap{
-			LogLevel: bootstrap.GetLogLevel(),
-		}
-	}
-
-	return vals
-}
-
-func GetIstioContainerValues(config *kgateway.IstioContainer) *HelmIstioContainer {
-	if config == nil {
-		return nil
-	}
-
-	return &HelmIstioContainer{
-		Image:                 GetImageValues(config.GetImage()),
-		LogLevel:              config.GetLogLevel(),
-		Resources:             config.GetResources(),
-		SecurityContext:       config.GetSecurityContext(),
-		IstioDiscoveryAddress: config.GetIstioDiscoveryAddress(),
-		IstioMetaMeshId:       config.GetIstioMetaMeshId(),
-		IstioMetaClusterId:    config.GetIstioMetaClusterId(),
-	}
-}
-
-// Convert istio values from GatewayParameters into helm values to be used by the deployer.
-func GetIstioValues(istioIntegrationEnabled bool, istioConfig *kgateway.IstioIntegration) *HelmIstio {
-	// if istioConfig is nil, istio sds is disabled and values can be ignored
-	if istioConfig == nil {
-		return &HelmIstio{
-			Enabled: ptr.To(istioIntegrationEnabled),
-		}
-	}
-
-	return &HelmIstio{
-		Enabled: ptr.To(istioIntegrationEnabled),
-	}
-}
-
-// Get the image values for the envoy container in the proxy deployment.
-func GetImageValues(image *kgateway.Image) *HelmImage {
-	if image == nil {
-		return &HelmImage{}
-	}
-
-	HelmImage := &HelmImage{
-		Registry:   image.GetRegistry(),
-		Repository: image.GetRepository(),
-		Tag:        image.GetTag(),
-		Digest:     image.GetDigest(),
-	}
-	if image.GetPullPolicy() != nil {
-		HelmImage.PullPolicy = ptr.To(string(*image.GetPullPolicy()))
-	}
-
-	return HelmImage
-}
-
-// Get the stats values for the envoy listener in the configmap for bootstrap.
-func GetStatsValues(statsConfig *kgateway.StatsConfig) *HelmStatsConfig {
-	if statsConfig == nil {
-		return nil
-	}
-	vals := &HelmStatsConfig{
-		Enabled:            statsConfig.GetEnabled(),
-		RoutePrefixRewrite: statsConfig.GetRoutePrefixRewrite(),
-		EnableStatsRoute:   statsConfig.GetEnableStatsRoute(),
-		StatsPrefixRewrite: statsConfig.GetStatsRoutePrefixRewrite(),
-	}
-
-	if m := statsConfig.GetMatcher(); m != nil {
-		hm := &HelmStatsMatcher{}
-		if incl := m.GetInclusionList(); len(incl) > 0 {
-			hm.InclusionList = toHelmStringMatcher(incl)
-		} else if excl := m.GetExclusionList(); len(excl) > 0 {
-			hm.ExclusionList = toHelmStringMatcher(excl)
-		}
-		vals.Matcher = hm
-	}
-
-	return vals
 }
 
 func toHelmStringMatcher(l []shared.StringMatcher) []HelmStringMatcher {

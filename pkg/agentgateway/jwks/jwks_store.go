@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 	"github.com/kgateway-dev/kgateway/v2/pkg/common"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 )
 
 // JwksStore is a top-level abstraction that relies on jwksCache and jwksFetcher to

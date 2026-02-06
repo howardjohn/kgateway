@@ -15,7 +15,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
 )
 
 const (
@@ -459,16 +458,6 @@ func GetResourceMetricEventHandler[T any]() func(krt.Event[T]) {
 		}
 
 		switch obj := clientObject.(type) {
-		case ir.PolicyWrapper:
-			resourceType = obj.Kind
-			resourceName = obj.Name
-			namespace = obj.Namespace
-			names = []string{""}
-
-			if clientObjectOld != nil {
-				namespaceOld = clientObjectOld.(ir.PolicyWrapper).Namespace
-				namesOld = []string{""}
-			}
 		case *gwv1.HTTPRoute:
 			resourceType = "HTTPRoute"
 			resourceName = obj.Name

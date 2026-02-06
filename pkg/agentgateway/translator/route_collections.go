@@ -27,7 +27,6 @@ import (
 	agwir "github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/ir"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer/status"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
 	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
@@ -514,7 +513,6 @@ func computeRoute[T controllers.Object, O comparable](ctx RouteContext, obj T, t
 type RouteContext struct {
 	Krt krt.HandlerContext
 	RouteContextInputs
-	AttachedPolicies ir.AttachedPolicies
 }
 
 // RouteContextInputs defines the collections needed to translate a route.
