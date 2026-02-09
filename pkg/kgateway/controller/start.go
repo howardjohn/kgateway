@@ -29,7 +29,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/namespaces"
-	"github.com/kgateway-dev/kgateway/v2/pkg/validator"
 )
 
 type SetupOpts struct {
@@ -70,7 +69,6 @@ type StartConfig struct {
 	HelmValuesGeneratorOverride HelmValuesGeneratorOverrideFunc
 
 	Client    apiclient.Client
-	Validator validator.Validator
 
 	AgwCollections    *agwplugins.AgwCollections
 	CommonCollections *collections.CommonCollections

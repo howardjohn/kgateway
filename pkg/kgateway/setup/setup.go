@@ -41,7 +41,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/schemes"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/namespaces"
-	"github.com/kgateway-dev/kgateway/v2/pkg/validator"
 )
 
 type Server interface {
@@ -160,12 +159,6 @@ func WithGlobalSettings(settings *apisettings.Settings) func(*setup) {
 	}
 }
 
-func WithValidator(v validator.Validator) func(*setup) {
-	return func(s *setup) {
-		s.validator = v
-	}
-}
-
 func WithExtraAgwResourceStatusHandlers(handlers map[schema.GroupVersionKind]agwplugins.AgwResourceStatusSyncHandler) func(*setup) {
 	return func(s *setup) {
 		s.extraAgwPolicyStatusHandlers = handlers
@@ -198,7 +191,6 @@ type setup struct {
 	krtDebugger                  *krt.DebugHandler
 	globalSettings               *apisettings.Settings
 	leaderElectionID             string
-	validator                    validator.Validator
 	extraAgwPolicyStatusHandlers map[schema.GroupVersionKind]agwplugins.AgwResourceStatusSyncHandler
 
 	agentgatewaySyncerOptions []agentgatewaysyncer.AgentgatewaySyncerOption
@@ -279,10 +271,6 @@ func New(opts ...func(*setup)) (*setup, error) {
 			slog.Error("error creating agw xds listener", "error", err)
 			return nil, err
 		}
-	}
-
-	if s.validator == nil {
-		s.validator = validator.NewBinary()
 	}
 
 	return s, nil
@@ -447,7 +435,6 @@ func (s *setup) buildKgatewayWithConfig(
 		KrtOptions:                     krtOpts,
 		CommonCollections:              commonCollections,
 		AgwCollections:                 agwCollections,
-		Validator:                      s.validator,
 		ExtraAgwResourceStatusHandlers: s.extraAgwPolicyStatusHandlers,
 		AgentgatewaySyncerOptions:      s.agentgatewaySyncerOptions,
 	})

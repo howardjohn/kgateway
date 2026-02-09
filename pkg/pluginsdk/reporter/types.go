@@ -9,30 +9,11 @@ import (
 const (
 	PolicyAcceptedMsg = "Policy accepted"
 
-	PolicyInvalidMsg = "Policy is invalid"
-
-	PolicyConflictWithHigherPriorityMsg = "Policy conflicts with higher priority policy"
-
 	PolicyAttachedMsg = "Attached to all targets"
 
 	PolicyMergedMsg = "Merged with other policies in target(s) and attached"
 
 	PolicyOverriddenMsg = "Overridden due to conflict with higher priority policy in target(s)"
-
-	// RouteRuleDroppedReason is used with the Accepted=False condition when the route rule is dropped.
-	RouteRuleDroppedReason = "RouteRuleDropped"
-
-	// RouteRuleReplacedReason is used with the Accepted=False condition when the route rule is replaced
-	// with a direct response.
-	RouteRuleReplacedReason = "RouteRuleReplaced"
-
-	// ListenerReplacedReason is used with the Accepted=False condition when an individual listener
-	// on a Gateway or XListenerSet is replaced due to an error in a policy targeting that listener.
-	ListenerReplacedReason = "ListenerReplaced"
-
-	// GatewayReplacedReason is used with the Accepted=False condition when the entire Gateway is replaced
-	// due to an error in a policy targeting the Gateway.
-	GatewayReplacedReason = "GatewayReplaced"
 )
 
 // PolicyAttachmentState represents the state of a policy attachment
@@ -113,7 +94,6 @@ type Reporter interface {
 	Gateway(gateway *gwv1.Gateway) GatewayReporter
 	ListenerSet(listenerSet client.Object) ListenerSetReporter
 	Route(obj metav1.Object) RouteReporter
-	Policy(ref PolicyKey, observedGeneration int64) PolicyReporter
 }
 
 type GatewayReporter interface {
