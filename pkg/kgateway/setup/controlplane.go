@@ -20,7 +20,6 @@ import (
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer/krtxds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer/nack"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
 )
 
@@ -106,7 +105,7 @@ func getGRPCServerOpts(
 							xdsAuthSuccessTotal.Inc()
 							return handler(srv, &grpc_middleware.WrappedServerStream{
 								ServerStream:   ss,
-								WrappedContext: context.WithValue(ss.Context(), xds.PeerCtxKey, u),
+								WrappedContext: context.WithValue(ss.Context(), krtxds.PeerCtxKey, u),
 							})
 						}
 						xdsAuthFailureTotal.Inc()

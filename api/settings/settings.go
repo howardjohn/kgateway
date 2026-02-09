@@ -149,7 +149,7 @@ type Settings struct {
 	// XdsServiceName is the name of the Kubernetes Service that serves xDS config.
 	// It is assumed to be in the kgateway install namespace.
 	// Ignored if XdsServiceHost is set.
-	XdsServiceName string `split_words:"true" default:"kgateway"`
+	XdsServiceName string `split_words:"true" default:"agentgateway"`
 
 	// XdsServicePort is the port of the Kubernetes Service that serves xDS config.
 	// This corresponds to the value of the `grpc-xds` port in the service.

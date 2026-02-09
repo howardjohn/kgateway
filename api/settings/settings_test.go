@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
-
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 )
 
 // allEnvVarsSet returns a map which contains keys corresponding to every ENV var that can be used to configure settings,
@@ -62,9 +60,9 @@ func TestSettings(t *testing.T) {
 				ListenerBindIpv6:                     true,
 				IstioNamespace:                       "istio-system",
 				XdsServiceHost:                       "",
-				XdsServiceName:                       wellknown.DefaultXdsService,
-				XdsServicePort:                       wellknown.DefaultXdsPort,
-				AgentgatewayXdsServicePort:           wellknown.DefaultAgwXdsPort,
+				XdsServiceName:                       "agentgateway",
+				XdsServicePort:                       9977,
+				AgentgatewayXdsServicePort:           9978,
 				EnableInferExt:                       false,
 				LogLevel:                             "info",
 				EnableBuiltinDefaultMetrics:          false,
@@ -160,9 +158,9 @@ func TestSettings(t *testing.T) {
 				DnsLookupFamily:                      DnsLookupFamilyV4Preferred,
 				ListenerBindIpv6:                     true,
 				IstioNamespace:                       "istio-system",
-				XdsServiceName:                       wellknown.DefaultXdsService,
-				XdsServicePort:                       wellknown.DefaultXdsPort,
-				AgentgatewayXdsServicePort:           wellknown.DefaultAgwXdsPort,
+				XdsServiceName:                       "agentgateway",
+				XdsServicePort:                       9977,
+				AgentgatewayXdsServicePort:           9978,
 				LogLevel:                             "info",
 				XdsAuth:                              true,
 				XdsTLS:                               false,

@@ -175,7 +175,7 @@ func ProcessParentReferences[T any](
 	}
 
 	// If conversion (backend/filter resolution) failed, ResolvedRefs=False for all parents.
-	resolvedOK := (gwResult.Error == nil)
+	resolvedOK := gwResult.Error == nil
 
 	// Consider each raw parentRef (listener-scoped) for mapping.
 	for _, parent := range parentRefs {

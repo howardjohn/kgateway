@@ -43,16 +43,6 @@ type DeployerTester struct {
 	AgwClassName      string
 }
 
-// NoSecurityContextValidator returns a validation function that ensures no securityContext appears in output.
-// Use this for null-based deletion with server-side apply, which completely removes the field.
-func NoSecurityContextValidator() func(t *testing.T, outputYaml string) {
-	return func(t *testing.T, outputYaml string) {
-		t.Helper()
-		assert.NotContains(t, outputYaml, "securityContext:",
-			"output YAML should not contain securityContext when omitDefaultSecurityContext is true")
-	}
-}
-
 // EmptySecurityContextValidator returns a validation function that allows
 // securityContext: {} but ensures no actual security values are configured.
 // Use this for $patch: delete, which sets securityContext to empty struct.

@@ -10,34 +10,7 @@ const (
 	PolicyAcceptedMsg = "Policy accepted"
 
 	PolicyAttachedMsg = "Attached to all targets"
-
-	PolicyMergedMsg = "Merged with other policies in target(s) and attached"
-
-	PolicyOverriddenMsg = "Overridden due to conflict with higher priority policy in target(s)"
 )
-
-// PolicyAttachmentState represents the state of a policy attachment
-type PolicyAttachmentState int
-
-const (
-	// PolicyAttachmentStatePending indicates that the policy is pending attachment
-	PolicyAttachmentStatePending PolicyAttachmentState = iota
-
-	// PolicyAttachmentStateSucceeded indicates that the full policy was successfully attached
-	PolicyAttachmentStateAttached PolicyAttachmentState = 1 << iota
-
-	// PolicyAttachmentStateMerged indicates that the policy was merged with other policies and attached
-	PolicyAttachmentStateMerged
-
-	// PolicyAttachmentStateOverridden indicates that the policy conflicts with higher priority policies
-	// and was fully overridden
-	PolicyAttachmentStateOverridden
-)
-
-// Has checks if the existing state has the given state
-func (a PolicyAttachmentState) Has(b PolicyAttachmentState) bool {
-	return a&b != 0
-}
 
 type PolicyCondition struct {
 	Type               string
@@ -77,17 +50,6 @@ type RouteCondition struct {
 	Status  metav1.ConditionStatus
 	Reason  gwv1.RouteConditionReason
 	Message string
-}
-
-type AncestorRefReporter interface {
-	SetCondition(condition PolicyCondition)
-	SetAttachmentState(
-		state PolicyAttachmentState,
-	)
-}
-
-type PolicyReporter interface {
-	AncestorRef(parentRef gwv1.ParentReference) AncestorRefReporter
 }
 
 type Reporter interface {

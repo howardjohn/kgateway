@@ -3,7 +3,7 @@ package collections
 import (
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/kube/krt"
-	kubetypes "istio.io/istio/pkg/kube/kubetypes"
+	"istio.io/istio/pkg/kube/kubetypes"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwxv1a1 "sigs.k8s.io/gateway-api/apisx/v1alpha1"
 

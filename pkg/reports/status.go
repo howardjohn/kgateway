@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
 	"istio.io/istio/pkg/ptr"
 	"istio.io/istio/pkg/slices"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -14,10 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
-	gwxv1a1 "sigs.k8s.io/gateway-api/apisx/v1alpha1"
-
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
 )
 
 // Status message constants
@@ -269,7 +267,7 @@ func (r *ReportMap) BuildRouteStatusWithParentRefDefaulting(
 
 	// now we have a status object reflecting the state of translation according to our reportMap
 	// let's add status from other controllers on the current object status
-	var kgwStatus *gwv1.RouteStatus = &newStatus
+	var kgwStatus = &newStatus
 	for _, rps := range existingStatus.Parents {
 		if rps.ControllerName != gwv1.GatewayController(controller) {
 			kgwStatus.Parents = append(kgwStatus.Parents, rps)
@@ -349,28 +347,6 @@ func addMissingGatewayConditions(gwReport *GatewayReport, gw *gwv1.Gateway) {
 // Reports will initially only contain negative conditions found during translation,
 // so all missing conditions are assumed to be positive. Here we will add all missing conditions
 // to a given report, i.e. set healthy conditions
-func AddMissingListenerSetConditions(lsReport *ListenerSetReport) {
-	if cond := meta.FindStatusCondition(lsReport.GetConditions(), string(gwv1.GatewayConditionAccepted)); cond == nil {
-		lsReport.SetCondition(reporter.GatewayCondition{
-			Type:    gwv1.GatewayConditionAccepted,
-			Status:  metav1.ConditionTrue,
-			Reason:  gwv1.GatewayReasonAccepted,
-			Message: ListenerSetAcceptedMessage,
-		})
-	}
-	if cond := meta.FindStatusCondition(lsReport.GetConditions(), string(gwv1.GatewayConditionProgrammed)); cond == nil {
-		lsReport.SetCondition(reporter.GatewayCondition{
-			Type:    gwv1.GatewayConditionProgrammed,
-			Status:  metav1.ConditionTrue,
-			Reason:  gwv1.GatewayReasonProgrammed,
-			Message: ListenerSetProgrammedMessage,
-		})
-	}
-}
-
-// Reports will initially only contain negative conditions found during translation,
-// so all missing conditions are assumed to be positive. Here we will add all missing conditions
-// to a given report, i.e. set healthy conditions
 func AddMissingListenerConditions(lisReport *ListenerReport) {
 	// set healthy conditions for Condition Types not set yet (i.e. no negative status yet, we can assume positive)
 	if cond := meta.FindStatusCondition(lisReport.Status.Conditions, string(gwv1.ListenerConditionAccepted)); cond == nil {
@@ -426,17 +402,5 @@ func addMissingParentRefConditions(report *ParentRefReport) {
 			Reason:  gwv1.RouteReasonResolvedRefs,
 			Message: ValidRefsMessage,
 		})
-	}
-}
-
-func ToListener(listenerEntry gwxv1a1.ListenerEntry) gwv1.Listener {
-	duplicate := listenerEntry.DeepCopy()
-	return gwv1.Listener{
-		Name:          duplicate.Name,
-		Hostname:      duplicate.Hostname,
-		Port:          duplicate.Port,
-		Protocol:      duplicate.Protocol,
-		TLS:           duplicate.TLS,
-		AllowedRoutes: duplicate.AllowedRoutes,
 	}
 }

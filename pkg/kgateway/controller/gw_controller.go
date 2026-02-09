@@ -38,10 +38,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
 
-const (
-	GatewayAutoDeployAnnotationKey = "gateway.kgateway.dev/auto-deploy"
-)
-
 var logger = logging.New("gateway-controller")
 
 var _ manager.LeaderElectionRunnable = (*gatewayReconciler)(nil)

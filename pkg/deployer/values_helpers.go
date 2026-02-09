@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/netip"
 	"regexp"
-	"sort"
-	"strings"
 
 	"istio.io/istio/pkg/slices"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -142,27 +140,6 @@ func SetLoadBalancerIPFromGatewayForAgentgateway(gw *gwv1.Gateway, svc *Agentgat
 		svc.LoadBalancerIP = ip
 	}
 	return nil
-}
-
-// ComponentLogLevelsToString converts the key-value pairs in the map into a string of the
-// format: key1:value1,key2:value2,key3:value3, where the keys are sorted alphabetically.
-// If an empty map is passed in, then an empty string is returned.
-// Map keys and values may not be empty.
-// No other validation is currently done on the keys/values.
-func ComponentLogLevelsToString(vals map[string]string) (string, error) {
-	if len(vals) == 0 {
-		return "", nil
-	}
-
-	parts := make([]string, 0, len(vals))
-	for k, v := range vals {
-		if k == "" || v == "" {
-			return "", ComponentLogLevelEmptyError(k, v)
-		}
-		parts = append(parts, fmt.Sprintf("%s:%s", k, v))
-	}
-	sort.Strings(parts)
-	return strings.Join(parts, ","), nil
 }
 
 func GenerateListenerNameFromPort(port gwv1.PortNumber) string {

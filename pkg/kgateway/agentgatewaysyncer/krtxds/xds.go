@@ -41,7 +41,6 @@ import (
 	_ "istio.io/istio/pkg/util/protomarshal" // Ensure we get the more efficient vtproto gRPC encoder
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer/nack"
-	kgwxds "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
@@ -534,7 +533,7 @@ func shouldRespondDelta(con *Connection, request *discovery.DeltaDiscoveryReques
 		})
 
 		if nackPublisher != nil {
-			gateway := kgwxds.AgentgatewayID(con.node)
+			gateway := AgentgatewayID(con.node)
 			nackEvent := nack.NackEvent{
 				Gateway:   gateway,
 				TypeUrl:   request.TypeUrl,
@@ -566,7 +565,7 @@ func shouldRespondDelta(con *Connection, request *discovery.DeltaDiscoveryReques
 		}
 
 		res, wildcard, _ := deltaWatchedResources(nil, request)
-		skip := request.TypeUrl == AddressType && wildcard
+		skip := request.TypeUrl == TargetTypeAddressUrl && wildcard
 		if skip {
 			// Due to the high resource count in WDS at scale, we do not store ResourceName.
 			// See the workload generator for more information on why we don't use this.
@@ -650,7 +649,7 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 		return nil
 	}
 	pushVersion := req.PushVersion
-	gw := kgwxds.AgentgatewayID(con.node)
+	gw := AgentgatewayID(con.node)
 	res, deletedRes, err := gen.GenerateDeltas(req, w, gw)
 	if err != nil || (res == nil && deletedRes == nil) {
 		return err
@@ -789,7 +788,7 @@ func (s *DiscoveryServer) NextVersion() string {
 }
 
 func (s *DiscoveryServer) authenticate(ctx context.Context) *types.NamespacedName {
-	peer, ok := ctx.Value(kgwxds.PeerCtxKey).(*security.Caller)
+	peer, ok := ctx.Value(PeerCtxKey).(*security.Caller)
 	if !ok {
 		// Not authenticated. If XDS auth was enabled, this will be rejected by the middleware, so no need to fail here
 		return nil
@@ -839,7 +838,7 @@ func (s *DiscoveryServer) initConnection(node *envoycorev3.Node, con *Connection
 
 	// Authorize xds clients
 	if id != nil {
-		reqId := kgwxds.AgentgatewayID(con.node)
+		reqId := AgentgatewayID(con.node)
 		if reqId != *id {
 			return fmt.Errorf("requested gateway %v but authenticated as %v", reqId, *id)
 		}
@@ -1328,17 +1327,49 @@ func ResourceSize(r model.Resources) int {
 	return size
 }
 
+
 const (
-	APITypePrefix = "type.googleapis.com/"
-	AddressType   = APITypePrefix + "istio.workload.Address"
+	TargetTypeResourceUrl = "type.googleapis.com/agentgateway.dev.resource.Resource"
+	TargetTypeAddressUrl  = "type.googleapis.com/istio.workload.Address"
 )
 
 // GetShortType returns an abbreviated form of a type, useful for logging or human friendly messages
 func GetShortType(typeURL string) string {
 	switch typeURL {
-	case AddressType:
+	case TargetTypeAddressUrl:
 		return "WDS"
+	case TargetTypeResourceUrl:
+		return "RDS"
 	default:
 		return typeURL
 	}
 }
+
+func AgentgatewayID(node *envoycorev3.Node) types.NamespacedName {
+	if node.GetMetadata() != nil {
+		roleValue := node.GetMetadata().GetFields()[RoleKey]
+		if roleValue != nil {
+			s := roleValue.GetStringValue()
+			ns, name, ok := strings.Cut(s, KeyDelimiter)
+			if ok {
+				return types.NamespacedName{
+					Namespace: ns,
+					Name:      name,
+				}
+			}
+		}
+	}
+
+	return types.NamespacedName{}
+}
+
+const (
+	// KeyDelimiter is the character used to join segments of a cache key
+	KeyDelimiter = "~"
+
+	// RoleKey is the name of the ket in the node.metadata used to store the role
+	RoleKey = "role"
+
+	// PeerCtxKey is the key used to store the peer information in the context
+	PeerCtxKey = "peer"
+)
