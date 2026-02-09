@@ -28,8 +28,6 @@ import (
 	"istio.io/istio/pilot/pkg/model"
 	"istio.io/istio/pilot/pkg/networking/util"
 	"istio.io/istio/pilot/pkg/util/protoconv"
-	pilotxds "istio.io/istio/pilot/pkg/xds"
-	v3 "istio.io/istio/pilot/pkg/xds/v3"
 	"istio.io/istio/pkg/env"
 	"istio.io/istio/pkg/kube/krt"
 	"istio.io/istio/pkg/maps"
@@ -284,10 +282,11 @@ type Connection struct {
 	proxy *Proxy
 
 	// deltaStream is used for Delta XDS. Only one of deltaStream or stream will be set
-	deltaStream pilotxds.DeltaDiscoveryStream
+	deltaStream DeltaDiscoveryStream
 
 	deltaReqChan chan *discovery.DeltaDiscoveryRequest
 }
+type DeltaDiscoveryStream = discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer
 
 // StreamAggregatedResources implements the ADS interface.
 func (s *DiscoveryServer) StreamAggregatedResources(stream discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
@@ -298,7 +297,7 @@ func (s *DiscoveryServer) DeltaAggregatedResources(stream discovery.AggregatedDi
 	return s.StreamDeltas(stream)
 }
 
-func (s *DiscoveryServer) StreamDeltas(stream pilotxds.DeltaDiscoveryStream) error {
+func (s *DiscoveryServer) StreamDeltas(stream DeltaDiscoveryStream) error {
 	// Check if server is ready to accept clients and process new requests.
 	// Currently ready means caches have been synced and hence can build
 	// clusters correctly. Without this check, InitContext() call below would
@@ -471,18 +470,16 @@ func (conn *Connection) sendDelta(res *discovery.DeltaDiscoveryResponse) error {
 	}
 	err := sendResonse()
 	if err == nil {
-		if !strings.HasPrefix(res.TypeUrl, v3.DebugType) {
-			conn.proxy.UpdateWatchedResource(res.TypeUrl, func(wr *model.WatchedResource) *model.WatchedResource {
-				if wr == nil {
-					wr = &model.WatchedResource{TypeUrl: res.TypeUrl}
-				}
-				wr.NonceSent = res.Nonce
-				wr.LastSendTime = time.Now()
-				return wr
-			})
-		}
+		conn.proxy.UpdateWatchedResource(res.TypeUrl, func(wr *model.WatchedResource) *model.WatchedResource {
+			if wr == nil {
+				wr = &model.WatchedResource{TypeUrl: res.TypeUrl}
+			}
+			wr.NonceSent = res.Nonce
+			wr.LastSendTime = time.Now()
+			return wr
+		})
 	} else if status.Convert(err).Code() == codes.DeadlineExceeded {
-		log.Info("timeout writing", "connection", conn.ID(), "type", v3.GetShortType(res.TypeUrl))
+		log.Info("timeout writing", "connection", conn.ID(), "type", GetShortType(res.TypeUrl))
 		xds.ResponseWriteTimeouts.Increment()
 	}
 	return err
@@ -492,7 +489,7 @@ func (conn *Connection) sendDelta(res *discovery.DeltaDiscoveryResponse) error {
 // handles 'push' requests and close - the code will eventually call the 'push' code, and it needs more mutex
 // protection. Original code avoided the mutexes by doing both 'push' and 'process requests' in same thread.
 func (s *DiscoveryServer) processDeltaRequest(req *discovery.DeltaDiscoveryRequest, con *Connection) error {
-	stype := v3.GetShortType(req.TypeUrl)
+	stype := GetShortType(req.TypeUrl)
 	log.Debug("ADS: REQ resources", "type", stype, "connection", con.ID(), "subscribe", len(req.ResourceNamesSubscribe), "unsubscribe", len(req.ResourceNamesUnsubscribe), "nonce", req.ResponseNonce)
 
 	shouldRespond := shouldRespondDelta(con, req, s.nackPublisher)
@@ -521,7 +518,7 @@ func (s *DiscoveryServer) processDeltaRequest(req *discovery.DeltaDiscoveryReque
 // shouldRespondDelta determines whether this request needs to be responded back. It applies the ack/nack rules as per xds protocol
 // using WatchedResource for previous state and discovery request for the current state.
 func shouldRespondDelta(con *Connection, request *discovery.DeltaDiscoveryRequest, nackPublisher *nack.Publisher) bool {
-	stype := v3.GetShortType(request.TypeUrl)
+	stype := GetShortType(request.TypeUrl)
 
 	// If there is an error in request that means previous response is erroneous.
 	// We do not have to respond in that case. In this case request's version info
@@ -569,7 +566,7 @@ func shouldRespondDelta(con *Connection, request *discovery.DeltaDiscoveryReques
 		}
 
 		res, wildcard, _ := deltaWatchedResources(nil, request)
-		skip := request.TypeUrl == v3.AddressType && wildcard
+		skip := request.TypeUrl == AddressType && wildcard
 		if skip {
 			// Due to the high resource count in WDS at scale, we do not store ResourceName.
 			// See the workload generator for more information on why we don't use this.
@@ -668,24 +665,24 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 		RemovedResources:  deletedRes,
 	}
 	if len(resp.RemovedResources) > 0 {
-		log.Debug("ADS: REMOVE", "type", v3.GetShortType(w.TypeUrl), "node", con.ID(), "removed", resp.RemovedResources)
+		log.Debug("ADS: REMOVE", "type", GetShortType(w.TypeUrl), "node", con.ID(), "removed", resp.RemovedResources)
 	}
 
-	configSize := pilotxds.ResourceSize(res)
+	configSize := ResourceSize(res)
 	//configSizeBytes.With(typeTag.Value(w.TypeUrl)).Record(float64(configSize))
 
 	if err := con.sendDelta(resp); err != nil {
-		log.Debug("send failure", "type", v3.GetShortType(w.TypeUrl), "node", con.proxy.ID, "resources", len(res), "size", util.ByteCount(configSize), "error", err)
+		log.Debug("send failure", "type", GetShortType(w.TypeUrl), "node", con.proxy.ID, "resources", len(res), "size", util.ByteCount(configSize), "error", err)
 		return err
 	}
 
 	log.Info("push response",
-		"type", v3.GetShortType(w.TypeUrl),
+		"type", GetShortType(w.TypeUrl),
 		"reason", req.PushReason(),
 		"node", con.proxy.ID,
 		"resources", len(res),
 		"removed", len(resp.RemovedResources),
-		"size", util.ByteCount(pilotxds.ResourceSize(res)))
+		"size", util.ByteCount(configSize))
 
 	return nil
 }
@@ -699,7 +696,7 @@ func (s *DiscoveryServer) IsServerReady() bool {
 	return true
 }
 
-func newDeltaConnection(peerAddr string, stream pilotxds.DeltaDiscoveryStream) *Connection {
+func newDeltaConnection(peerAddr string, stream DeltaDiscoveryStream) *Connection {
 	return &Connection{
 		Connection:   xds.NewConnection(peerAddr, nil),
 		deltaStream:  stream,
@@ -1319,4 +1316,29 @@ func (node *Proxy) DeepCloneWatchedResources() map[string]model.WatchedResource 
 		m[k] = *v
 	}
 	return m
+}
+
+func ResourceSize(r model.Resources) int {
+	// Approximate size by looking at the Any marshaled size. This avoids high cost
+	// proto.Size, at the expense of slightly under counting.
+	size := 0
+	for _, r := range r {
+		size += len(r.Resource.Value)
+	}
+	return size
+}
+
+const (
+	APITypePrefix = "type.googleapis.com/"
+	AddressType   = APITypePrefix + "istio.workload.Address"
+)
+
+// GetShortType returns an abbreviated form of a type, useful for logging or human friendly messages
+func GetShortType(typeURL string) string {
+	switch typeURL {
+	case AddressType:
+		return "WDS"
+	default:
+		return typeURL
+	}
 }
