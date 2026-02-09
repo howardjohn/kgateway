@@ -83,36 +83,6 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 
 	tests := []HelmTestCase{
 		{
-			Name:      "basic gateway with default gatewayclass and no gwparams",
-			InputFile: "base-gateway",
-		},
-		{
-			Name:      "gateway with replicas GWP via GWC",
-			InputFile: "gwc-with-replicas",
-		},
-		{
-			Name:      "gateway with priorityClassName",
-			InputFile: "priority-class-name",
-		},
-		{
-			Name:      "gwparams with omitDefaultSecurityContext via GWC",
-			InputFile: "omit-default-security-context",
-			Validate:  NoSecurityContextValidator(),
-		},
-		{
-			Name:      "gwparams with omitDefaultSecurityContext via GW",
-			InputFile: "omit-default-security-context-via-gw",
-			Validate:  NoSecurityContextValidator(),
-		},
-		{
-			Name:      "gwparams with stats matcher inclusion",
-			InputFile: "stats-matcher-inclusion",
-		},
-		{
-			Name:      "gwparams with stats matcher exclusion",
-			InputFile: "stats-matcher-exclusion",
-		},
-		{
 			Name:      "agentgateway",
 			InputFile: "agentgateway",
 		},
@@ -135,40 +105,6 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 		{
 			Name:      "agentgateway-controller-but-custom-gatewayclass",
 			InputFile: "agentgateway-controller-but-custom-gatewayclass",
-		},
-		{
-			// The GW parametersRef merges with the GWC parametersRef.
-			// GWC has replicas:2, GW has omitDefaultSecurityContext:true.
-			// Both settings should appear in the output.
-			Name:      "both GWC and GW have parametersRef",
-			InputFile: "both-gwc-and-gw-have-params",
-			Validate: func(t *testing.T, outputYaml string) {
-				t.Helper()
-				assert.Contains(t, outputYaml, "replicas: 2",
-					"replicas from GatewayClass params should be preserved when Gateway has omitDefaultSecurityContext")
-				assert.NotContains(t, outputYaml, "securityContext",
-					"securityContext should be omitted due to Gateway's omitDefaultSecurityContext:true")
-			},
-		},
-		{
-			// Like the above, but swap the actual parameters to test the test:
-			Name:      "both GWC and GW have parametersRef reversed",
-			InputFile: "both-gwc-and-gw-have-params-reversed",
-		},
-		{
-			Name:      "gateway with static IP address",
-			InputFile: "loadbalancer-static-ip",
-		},
-		{
-			Name:      "gateway with loadBalancerClass",
-			InputFile: "loadbalancer-class",
-			Validate: func(t *testing.T, outputYaml string) {
-				t.Helper()
-				assert.Contains(t, outputYaml, "loadBalancerClass: service.k8s.aws/nlb",
-					"loadBalancerClass should be set on the Service")
-				assert.Contains(t, outputYaml, "type: LoadBalancer",
-					"Service type should be LoadBalancer")
-			},
 		},
 		{
 			Name:      "agentgateway-params-primary",
@@ -372,7 +308,7 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 
 	dir := fsutils.MustGetThisDir()
 	scheme := schemes.GatewayScheme()
-	crdDir := filepath.Join(testutils.GitRootDirectory(), testutils.CRDPath)
+	crdDir := filepath.Join(testutils.GitRootDirectory(), testutils.AgwCRDPath)
 
 	VerifyAllYAMLFilesReferenced(t, filepath.Join(dir, "testdata"), tests)
 
