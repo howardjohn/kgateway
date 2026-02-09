@@ -41,6 +41,7 @@ func TestDependencies(t *testing.T) {
 				`^helm\.sh/helm/v3`,
 				`^sigs\.k8s\.io/controller-runtime`,
 				// Testing deps
+				`^sigs.k8s.io/controller-runtime/tools/setup-envtest/`,
 				`^github\.com/AdaLogics/go-fuzz-headers`,
 				`^github\.com/google/shlex`,
 				`^github\.com/howardjohn/unshare-go`,

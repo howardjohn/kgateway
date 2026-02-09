@@ -23,13 +23,14 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/namespaces"
 )
 
+// TLSRootCAPath is the path to the TLS root CA
+const TLSRootCAPath = "/etc/xds-tls/ca.crt"
 type SetupOpts struct {
 	KrtDebugger *krt.DebugHandler
 
@@ -194,7 +195,7 @@ func (c *ControllerBuilder) Build(ctx context.Context) (*agentgatewaysyncer.Sync
 			XdsHost:      xdsHost,
 			AgwXdsPort:   agwXdsPort,
 			XdsTLS:       globalSettings.XdsTLS,
-			XdsTlsCaPath: xds.TLSRootCAPath,
+			XdsTlsCaPath: TLSRootCAPath,
 		},
 		DiscoveryNamespaceFilter: c.cfg.Client.ObjectFilter(),
 		CommonCollections:        c.commoncol,

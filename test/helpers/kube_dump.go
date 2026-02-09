@@ -14,12 +14,8 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils/kubectl"
-	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils/portforward"
-	"github.com/kgateway-dev/kgateway/v2/pkg/utils/requestutils/curl"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/threadsafe"
-	kgatewayAdminCli "github.com/kgateway-dev/kgateway/v2/test/controllerutils/admincli"
 	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
@@ -39,7 +35,6 @@ func StandardKgatewayDumpOnFail(outLog io.Writer, kubectlCli *kubectl.Cli, outDi
 	wipeOutDir(outDir)
 
 	KubeDumpOnFail(ctx, kubectlCli, outLog, outDir, namespaces)
-	ControllerDumpOnFail(ctx, kubectlCli, outLog, outDir, namespaces)
 
 	fmt.Printf("Test failed. Logs and cluster state are available in %s\n", outDir)
 }
@@ -306,75 +301,6 @@ func kubeList(namespace string, target string) ([]string, error) {
 	return toReturn, nil
 }
 
-// ControllerDumpOnFail creates a small dump of the controller state when a test fails.
-// This is useful for debugging test failures.
-// The dump includes:
-// - controller logs
-// - controller metrics
-// - controller xds snapshot
-// - controller krt snapshot
-func ControllerDumpOnFail(ctx context.Context, kubectlCli *kubectl.Cli, outLog io.Writer,
-	outDir string, namespaces []string,
-) {
-	for _, ns := range namespaces {
-		controllerPodNames, err := kubectlCli.GetPodsInNsWithLabel(ctx, ns, "kgateway=kgateway")
-		if err != nil {
-			fmt.Printf("error fetching controller pod names: %f\n", err)
-			continue
-		}
-
-		if len(controllerPodNames) == 0 {
-			fmt.Printf("no kgateway=kgateway pods found in namespace %s\n", ns)
-			continue
-		}
-
-		fmt.Printf("found controller pods: %s\n", strings.Join(controllerPodNames, ", "))
-
-		namespaceOutDir := filepath.Join(outDir, ns)
-		setupOutDir(namespaceOutDir)
-
-		for _, podName := range controllerPodNames {
-			writeControllerLog(ctx, namespaceOutDir, ns, podName, kubectlCli)
-			writeMetricsLog(ctx, namespaceOutDir, ns, podName, kubectlCli)
-
-			// Open a port-forward to the controller pod's admin port
-			portForwarder, err := kubectlCli.StartPortForward(ctx,
-				portforward.WithPod(podName, ns),
-				portforward.WithPorts(int(wellknown.KgatewayAdminPort), int(wellknown.KgatewayAdminPort)),
-			)
-			if err != nil {
-				fmt.Printf("error starting port forward to controller admin port: %f\n", err)
-			}
-
-			defer func() {
-				portForwarder.Close()
-				portForwarder.WaitForStop()
-			}()
-
-			adminClient := kgatewayAdminCli.NewClient().
-				WithReceiver(io.Discard).
-				WithCurlOptions(
-					curl.WithRetries(3, 0, 10),
-					curl.WithPort(int(wellknown.KgatewayAdminPort)),
-				)
-
-			krtSnapshotFile := fileAtPath(filepath.Join(namespaceOutDir, fmt.Sprintf("%s.krt_snapshot.log", podName)))
-			err = adminClient.KrtSnapshotCmd(ctx).WithStdout(krtSnapshotFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running krt snapshot command: %f\n", err)
-			}
-
-			xdsSnapshotFile := fileAtPath(filepath.Join(namespaceOutDir, fmt.Sprintf("%s.xds_snapshot.log", podName)))
-			err = adminClient.XdsSnapshotCmd(ctx).WithStdout(xdsSnapshotFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running xds snapshot command: %f\n", err)
-			}
-
-			fmt.Printf("finished dumping controller state\n")
-		}
-	}
-}
-
 func wipeOutDir(outDir string) {
 	err := os.RemoveAll(outDir)
 	if err != nil {
@@ -397,27 +323,4 @@ func fileAtPath(path string) *os.File {
 		fmt.Printf("unable to openfile: %f\n", err)
 	}
 	return f
-}
-
-func writeControllerLog(ctx context.Context, outDir string, ns string, podName string, kubectlCli *kubectl.Cli) {
-	// Get the kgateway controller logs
-	controllerLogsFile := fileAtPath(filepath.Join(outDir, fmt.Sprintf("%s.controller.log", podName)))
-	controllerLogsCmd := kubectlCli.WithReceiver(controllerLogsFile).Command(ctx,
-		"-n", ns, "logs", podName, "-c", KgatewayContainerName, "--tail=1000")
-	err := controllerLogsCmd.Run().Cause()
-	if err != nil {
-		fmt.Printf("error running controller logs for %s in %s command: %v\n", podName, ns, err)
-	}
-}
-
-func writeMetricsLog(ctx context.Context, outDir string, ns string, podName string, kubectlCli *kubectl.Cli) {
-	// Using an ephemeral debug pod fetch the metrics from the kgateway controller
-	metricsFile := fileAtPath(filepath.Join(outDir, fmt.Sprintf("%s.metrics.log", podName)))
-	metricsCmd := kubectlCli.Command(ctx, "debug", "-n", ns,
-		"-it", "--image=curlimages/curl:7.83.1", podName, "--",
-		"curl", "http://localhost:9091/metrics")
-	err := metricsCmd.WithStdout(metricsFile).WithStderr(metricsFile).Run().Cause()
-	if err != nil {
-		fmt.Printf("error running metrics command: %f\n", err)
-	}
 }

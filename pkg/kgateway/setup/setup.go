@@ -21,6 +21,7 @@ import (
 
 	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/jwks"
+	"github.com/kgateway-dev/kgateway/v2/api/settings"
 	"github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/jwks_url"
 	agentjwksstore "github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/jwksstore"
 	agwplugins "github.com/kgateway-dev/kgateway/v2/pkg/agentgateway/plugins"
@@ -29,7 +30,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/controller"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
@@ -158,7 +158,7 @@ func (s *setup) Start(ctx context.Context) error {
 	var certWatcher *certwatcher.CertWatcher
 	if s.globalSettings.XdsTLS {
 		var err error
-		certWatcher, err = certwatcher.New(xds.TLSCertPath, xds.TLSKeyPath)
+		certWatcher, err = certwatcher.New(settings.TLSCertPath, settings.TLSKeyPath)
 		if err != nil {
 			return err
 		}

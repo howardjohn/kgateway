@@ -126,6 +126,22 @@ func (r *GatewayClassParametersRefs) Decode(value string) error {
 	return nil
 }
 
+const (
+	// TLSSecretName is the name of the Kubernetes Secret containing the TLS certificate,
+	// private key, and CA certificate for xDS communication. This secret must exist in the
+	// kgateway installation namespace when TLS is enabled.
+	TLSSecretName = "kgateway-xds-cert" //nolint:gosec // G101: This is a well-known xDS TLS secret name, not a credential
+
+	// TLSCertPath is the path to the TLS certificate
+	TLSCertPath = "/etc/xds-tls/tls.crt"
+
+	// TLSKeyPath is the path to the TLS key
+	TLSKeyPath = "/etc/xds-tls/tls.key"
+
+	// TLSRootCAPath is the path to the TLS root CA
+	TLSRootCAPath = "/etc/xds-tls/ca.crt"
+)
+
 type Settings struct {
 	// Controls the DnsLookupFamily for all static clusters created via Backend resources.
 	// If not set, kgateway will default to "V4_PREFERRED". Note that this is different
