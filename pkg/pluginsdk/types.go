@@ -3,9 +3,7 @@ package pluginsdk
 import (
 	"context"
 	"encoding/json"
-	"errors"
 
-	envoyclusterv3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/krt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,36 +12,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/endpoints"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/ir"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/reporter"
 	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
-)
-
-// ErrNotFound is returned when a requested resource is not found
-var ErrNotFound = errors.New("not found")
-
-type (
-	EndpointsInputs = endpoints.EndpointsInputs
-	ProcessBackend  func(ctx context.Context, pol ir.PolicyIR, in ir.BackendObjectIR, out *envoyclusterv3.Cluster)
-	EndpointPlugin  func(
-		kctx krt.HandlerContext,
-		ctx context.Context,
-		ucc ir.UniqlyConnectedClient,
-		out *EndpointsInputs,
-	) uint64
-)
-
-// TODO: consider changing PerClientProcessBackend to look like this:
-// PerClientProcessBackend  func(kctx krt.HandlerContext, ctx context.Context, ucc ir.UniqlyConnectedClient, in ir.BackendObjectIR)
-// so that it only attaches the policy to the backend, and doesn't modify the backend (except for attached policies) or the cluster itself.
-// leaving as is for now as this requires better understanding of how krt would handle this.
-type PerClientProcessBackend func(
-	kctx krt.HandlerContext,
-	ctx context.Context,
-	ucc ir.UniqlyConnectedClient,
-	in ir.BackendObjectIR,
-	out *envoyclusterv3.Cluster,
 )
 
 type (
@@ -56,11 +27,6 @@ type (
 type PolicyPlugin struct {
 	Name                      string
 	NewGatewayTranslationPass func(tctx ir.GwTranslationCtx, reporter reporter.Reporter) ir.ProxyTranslationPass
-
-	// Backend processing for envoy proxy
-	ProcessBackend            ProcessBackend
-	PerClientProcessBackend   PerClientProcessBackend
-	PerClientProcessEndpoints EndpointPlugin
 
 	// Backend processing for agent gateway
 	ProcessAgentBackend func(pol ir.PolicyIR, in ir.BackendObjectIR) error

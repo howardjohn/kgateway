@@ -54,10 +54,6 @@ func (gp *GatewayParameters) GetAgentgatewayParametersClient() kclient.Client[*a
 	return nil
 }
 
-func LoadEnvoyChart() (*chart.Chart, error) {
-	return loadChart(helm.EnvoyHelmChart)
-}
-
 func LoadAgentgatewayChart() (*chart.Chart, error) {
 	return loadChart(helm.AgentgatewayHelmChart)
 }

@@ -14,7 +14,6 @@ type CommonCollections struct {
 	// TODO: this should be refactored to a more correct location,
 	// or even better, be removed entirely and done per Gateway (maybe in GwParams)
 	Settings                   apisettings.Settings
-	ControllerName             string
 	AgentgatewayControllerName string
 }
 
@@ -24,7 +23,6 @@ type CommonCollections struct {
 func NewCommonCollections(
 	krtOptions krtutil.KrtOptions,
 	client apiclient.Client,
-	controllerName string,
 	agentGatewayControllerName string,
 	settings apisettings.Settings,
 ) (*CommonCollections, error) {
@@ -32,7 +30,6 @@ func NewCommonCollections(
 		Client:            client,
 		KrtOpts:           krtOptions,
 		Settings:          settings,
-		ControllerName:             controllerName,
 		AgentgatewayControllerName: agentGatewayControllerName,
 	}, nil
 }

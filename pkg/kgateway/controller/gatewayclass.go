@@ -48,13 +48,13 @@ func newGatewayClassReconciler(
 ) *gatewayClassReconciler {
 	filter := kclient.Filter{ObjectFilter: cfg.Client.ObjectFilter()}
 	r := &gatewayClassReconciler{
-		defaultControllerName: cfg.ControllerName,
+		defaultControllerName: cfg.AgwControllerName,
 		classInfo:             classInfo,
 		gwClassClient:         kclient.NewFilteredDelayed[*gwv1.GatewayClass](cfg.Client, gvr.GatewayClass, filter),
 		client:                cfg.Client,
 	}
 	r.queue = controllers.NewQueue("GatewayClassController", controllers.WithReconciler(r.reconcile), controllers.WithMaxAttempts(math.MaxInt), controllers.WithRateLimiter(rateLimiter))
-	ourControllers := sets.New(cfg.ControllerName, cfg.AgwControllerName)
+	ourControllers := sets.New(cfg.AgwControllerName)
 
 	r.gwClassClient.AddEventHandler(
 		controllers.FromEventHandler(func(o controllers.Event) {

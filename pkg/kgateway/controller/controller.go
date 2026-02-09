@@ -30,16 +30,9 @@ type GatewayConfig struct {
 	Mgr    manager.Manager
 	// Dev enables development mode for the controller.
 	Dev bool
-	// ControllerName is the name of the Envoy controller. Any GatewayClass objects
-	// managed by this controller must have this name as their ControllerName.
-	ControllerName string
 	// AgwControllerName is the name of the agentgateway controller. Any GatewayClass objects
 	// managed by this controller must have this name as their ControllerName.
 	AgwControllerName string
-	// EnableEnvoy indicates if the Envoy controller is enabled
-	EnableEnvoy bool
-	// EnableAgentgateway indicates if the agentgateway controller is enabled
-	EnableAgentgateway bool
 	// ControlPlane sets the default control plane information the deployer will use.
 	ControlPlane deployer.ControlPlaneInfo
 	// IstioAutoMtlsEnabled enables istio auto mtls mode for the controller,
@@ -93,7 +86,7 @@ func watchGw(
 	gatewayControllerExtension pluginsdk.GatewayControllerExtension,
 ) error {
 	logger.Info("creating gateway deployer",
-		"ctrlname", cfg.ControllerName, "agwctrlname", cfg.AgwControllerName,
+		 "agwctrlname", cfg.AgwControllerName,
 		"server", cfg.ControlPlane.XdsHost, "port", cfg.ControlPlane.XdsPort,
 		"agwport", cfg.ControlPlane.AgwXdsPort, "tls", cfg.ControlPlane.XdsTLS,
 	)
@@ -116,7 +109,6 @@ func watchGw(
 	}
 
 	d, err := internaldeployer.NewGatewayDeployer(
-		cfg.ControllerName,
 		cfg.AgwControllerName,
 		cfg.AgentgatewayClassName,
 		cfg.Mgr.GetScheme(),
