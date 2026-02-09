@@ -12,7 +12,7 @@ import (
 	"github.com/agentgateway/agentgateway/go/api"
 	"github.com/golang/protobuf/ptypes/duration"
 	"istio.io/api/annotation"
-	kubecreds "istio.io/istio/pilot/pkg/credentials/kube"
+	"istio.io/istio/pilot/pkg/credentials"
 	"istio.io/istio/pilot/pkg/model/kstatus"
 	"istio.io/istio/pkg/config/host"
 	"istio.io/istio/pkg/config/protocol"
@@ -1416,7 +1416,7 @@ func buildCaCertificateReference(
 				Message: fmt.Sprintf("invalid CA certificate reference, configmap %v not found", res.Source),
 			}
 		}
-		certInfo, err := kubecreds.ExtractRootFromString(cm.Data)
+		certInfo, err := ExtractRootFromString(cm.Data)
 		if err != nil {
 			return nil, &ConfigError{
 				Reason:  InvalidTLS,
@@ -1433,7 +1433,7 @@ func buildCaCertificateReference(
 				Message: fmt.Sprintf("invalid CA certificate reference, secret %v not found", res.Source),
 			}
 		}
-		certInfo, err := kubecreds.ExtractRoot(scrt.Data)
+		certInfo, err := ExtractRoot(scrt.Data)
 		if err != nil {
 			return nil, &ConfigError{
 				Reason:  InvalidTLS,
@@ -1479,7 +1479,7 @@ func buildSecretReference(
 			Message: fmt.Sprintf("invalid certificate reference %v, secret not found", objectReferenceString(ref)),
 		}
 	}
-	certInfo, err := kubecreds.ExtractCertInfo(scrt)
+	certInfo, err := ExtractCertInfo(scrt)
 	if err != nil {
 		return nil, &ConfigError{
 			Reason:  InvalidTLS,
@@ -1661,4 +1661,81 @@ func GvkFromObject(obj any) schema.GroupVersionKind {
 	default:
 		panic("Uknown GVK")
 	}
+}
+const (
+	// The ID/name for the certificate chain in kubernetes tls secret.
+	TLSSecretCert = "tls.crt"
+	// The ID/name for the k8sKey in kubernetes tls secret.
+	TLSSecretKey = "tls.key"
+	// The ID/name for the certificate OCSP staple in kubernetes tls secret
+	TLSSecretOcspStaple = "tls.ocsp-staple"
+	// The ID/name for the CA certificate in kubernetes tls secret
+	TLSSecretCaCert = "ca.crt"
+	// The ID/name for the CRL in kubernetes tls secret.
+	TLSSecretCrl = "ca.crl"
+)
+// ExtractRootFromString extracts the root certificate
+func ExtractRootFromString(data map[string]string) (certInfo *credentials.CertInfo, err error) {
+	conv := make(map[string][]byte, len(data))
+	for k, v := range data {
+		conv[k] = []byte(v)
+	}
+	return ExtractRoot(conv)
+}
+
+// ExtractRoot extracts the root certificate
+func ExtractRoot(data map[string][]byte) (certInfo *credentials.CertInfo, err error) {
+	ret := &credentials.CertInfo{}
+	if hasValue(data, TLSSecretCaCert) {
+		ret.Cert = data[TLSSecretCaCert]
+		ret.CRL = data[TLSSecretCrl]
+		return ret, nil
+	}
+	// No cert found. Try to generate a helpful error message
+	if hasKeys(data, TLSSecretCaCert) {
+		return nil, fmt.Errorf("found key %q, but it was empty", TLSSecretCaCert)
+	}
+	found := truncatedKeysMessage(data)
+	return nil, fmt.Errorf("found secret, but didn't have expected keys %s; found: %s",
+		TLSSecretCaCert, found)
+}
+
+// CertInfo wraps a certificate, key, and oscp staple information.
+type CertInfo struct {
+	// The certificate chain
+	Cert []byte
+	// The private key
+	Key []byte
+}
+
+func hasKeys(d map[string][]byte, keys ...string) bool {
+	for _, k := range keys {
+		_, f := d[k]
+		if !f {
+			return false
+		}
+	}
+	return true
+}
+
+func hasValue(d map[string][]byte, keys ...string) bool {
+	for _, k := range keys {
+		v := d[k]
+		if len(v) == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func truncatedKeysMessage(data map[string][]byte) string {
+	keys := []string{}
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	if len(keys) < 3 {
+		return strings.Join(keys, ", ")
+	}
+	return fmt.Sprintf("%s, and %d more...", strings.Join(keys[:3], ", "), len(keys)-3)
 }
