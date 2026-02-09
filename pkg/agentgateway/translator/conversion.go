@@ -1662,6 +1662,7 @@ func GvkFromObject(obj any) schema.GroupVersionKind {
 		panic("Uknown GVK")
 	}
 }
+
 const (
 	// The ID/name for the certificate chain in kubernetes tls secret.
 	TLSSecretCert = "tls.crt"
@@ -1674,6 +1675,7 @@ const (
 	// The ID/name for the CRL in kubernetes tls secret.
 	TLSSecretCrl = "ca.crl"
 )
+
 // ExtractRootFromString extracts the root certificate
 func ExtractRootFromString(data map[string]string) (certInfo *credentials.CertInfo, err error) {
 	conv := make(map[string][]byte, len(data))
@@ -1738,4 +1740,23 @@ func truncatedKeysMessage(data map[string][]byte) string {
 		return strings.Join(keys, ", ")
 	}
 	return fmt.Sprintf("%s, and %d more...", strings.Join(keys[:3], ", "), len(keys)-3)
+}
+
+// ExtractCertInfo extracts server key, certificate, and OCSP staple
+func ExtractCertInfo(scrt *corev1.Secret) (certInfo *credentials.CertInfo, err error) {
+	ret := &credentials.CertInfo{}
+	if hasValue(scrt.Data, TLSSecretCert, TLSSecretKey) {
+		ret.Cert = scrt.Data[TLSSecretCert]
+		ret.Key = scrt.Data[TLSSecretKey]
+		ret.Staple = scrt.Data[TLSSecretOcspStaple]
+		ret.CRL = scrt.Data[TLSSecretCrl]
+		return ret, nil
+	}
+	// No cert found. Try to generate a helpful error message
+	if hasKeys(scrt.Data, TLSSecretCert, TLSSecretKey) {
+		return nil, fmt.Errorf("found keys %q and %q, but they were empty", TLSSecretCert, TLSSecretKey)
+	}
+	found := truncatedKeysMessage(scrt.Data)
+	return nil, fmt.Errorf("found secret, but didn't have expected keys (%s and %s); found: %s",
+		TLSSecretCert, TLSSecretKey, found)
 }

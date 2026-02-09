@@ -13,7 +13,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 	internaldeployer "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/deployer"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 )
 
@@ -63,12 +62,11 @@ func NewBaseGatewayController(
 	cfg GatewayConfig,
 	classInfos map[string]*deployer.GatewayClassInfo,
 	helmValuesGeneratorOverride HelmValuesGeneratorOverrideFunc,
-	gatewayControllerExtension pluginsdk.GatewayControllerExtension,
 ) error {
 	logger.Info("starting controllers")
 
 	// Initialize Gateway reconciler
-	if err := watchGw(cfg, helmValuesGeneratorOverride, gatewayControllerExtension); err != nil {
+	if err := watchGw(cfg, helmValuesGeneratorOverride); err != nil {
 		return nil
 	}
 
@@ -83,7 +81,6 @@ func NewBaseGatewayController(
 func watchGw(
 	cfg GatewayConfig,
 	helmValuesGeneratorOverride HelmValuesGeneratorOverrideFunc,
-	gatewayControllerExtension pluginsdk.GatewayControllerExtension,
 ) error {
 	logger.Info("creating gateway deployer",
 		 "agwctrlname", cfg.AgwControllerName,
@@ -119,5 +116,5 @@ func watchGw(
 		return err
 	}
 
-	return cfg.Mgr.Add(NewGatewayReconciler(cfg, d, gwParams, gatewayControllerExtension))
+	return cfg.Mgr.Add(NewGatewayReconciler(cfg, d, gwParams))
 }

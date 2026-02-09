@@ -26,7 +26,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections/metrics"
-	sdk "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
@@ -79,9 +78,6 @@ type StartConfig struct {
 
 	KrtOptions                     krtutil.KrtOptions
 	ExtraAgwResourceStatusHandlers map[schema.GroupVersionKind]agwplugins.AgwResourceStatusSyncHandler
-
-	// GatewayControllerExtension is an extension that can be used to extend Gateway controller
-	GatewayControllerExtension sdk.GatewayControllerExtension
 
 	// AgentgatewaySyncerOptions is the list of options to be passed when creating the AgentGatewaySyncer
 	AgentgatewaySyncerOptions []agentgatewaysyncer.AgentgatewaySyncerOption
@@ -236,7 +232,6 @@ func (c *ControllerBuilder) Build(ctx context.Context) (*agentgatewaysyncer.Sync
 		gwCfg,
 		c.cfg.GatewayClassInfos,
 		c.cfg.HelmValuesGeneratorOverride,
-		c.cfg.GatewayControllerExtension,
 	); err != nil {
 		setupLog.Error(err, "unable to create gateway controller")
 		return nil, err

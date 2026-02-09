@@ -254,7 +254,7 @@ func (g *agentgatewayParametersHelmValuesGenerator) getDefaultAgentgatewayHelmVa
 	//irGW := deployer.GetGatewayIR(gw, g.inputs.CommonCollections)
 	// TODODONOTMERGE
 	irGW := &deployer.GatewayForDeployer{}
-	ports := deployer.GetPortsValues(irGW, true) // true = agentgateway
+	ports := deployer.GetPortsValues(irGW)
 	if len(ports) == 0 {
 		return nil, ErrNoValidPorts
 	}

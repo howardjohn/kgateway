@@ -34,7 +34,6 @@ import (
 	internaldeployer "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/deployer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
@@ -62,8 +61,6 @@ type gatewayReconciler struct {
 	svcAccountClient kclient.Client[*corev1.ServiceAccount]
 	configMapClient  kclient.Client[*corev1.ConfigMap]
 
-	controllerExtension pluginsdk.GatewayControllerExtension
-
 	queue controllers.Queue
 }
 
@@ -71,7 +68,6 @@ func NewGatewayReconciler(
 	cfg GatewayConfig,
 	deployer *deployer.Deployer,
 	gwParams *internaldeployer.GatewayParameters,
-	controllerExtension pluginsdk.GatewayControllerExtension,
 ) *gatewayReconciler {
 	filter := kclient.Filter{ObjectFilter: cfg.Client.ObjectFilter()}
 	r := &gatewayReconciler{
@@ -79,7 +75,6 @@ func NewGatewayReconciler(
 		gwParams:            gwParams,
 		scheme:              cfg.Mgr.GetScheme(),
 		agwControllerName:   cfg.AgwControllerName,
-		controllerExtension: controllerExtension,
 
 		gwClient:         kclient.NewFilteredDelayed[*gwv1.Gateway](cfg.Client, gvr.KubernetesGateway, filter),
 		gwClassClient:    kclient.NewFilteredDelayed[*gwv1.GatewayClass](cfg.Client, gvr.GatewayClass, filter),
@@ -245,9 +240,6 @@ func (r *gatewayReconciler) Start(ctx context.Context) error {
 
 	// Wait for all caches to sync
 	kube.WaitForCacheSync("GatewayController", ctx.Done(), hasSynced...)
-	if r.controllerExtension != nil {
-		r.controllerExtension.Start(ctx)
-	}
 	r.queue.Run(ctx.Done())
 
 	// Shutdown all the clients
@@ -264,9 +256,7 @@ func (r *gatewayReconciler) Start(ctx context.Context) error {
 		clients = append(clients, r.agwParamClient)
 	}
 	controllers.ShutdownAll(clients...)
-	if r.controllerExtension != nil {
-		r.controllerExtension.Stop()
-	}
+
 	return nil
 }
 
@@ -453,7 +443,7 @@ func updateGatewayStatusWithRetryFunc(
 			return nil
 		}
 		_, err := cli.UpdateStatus(&gwv1.Gateway{
-			ObjectMeta: pluginsdk.CloneObjectMetaForStatus(gw.ObjectMeta),
+			ObjectMeta: CloneObjectMetaForStatus(gw.ObjectMeta),
 			Status:     status,
 		})
 		return err

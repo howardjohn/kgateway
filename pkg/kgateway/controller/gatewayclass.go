@@ -23,7 +23,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/reports"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
 )
@@ -138,7 +137,7 @@ func (r *gatewayClassReconciler) reconcile(req types.NamespacedName) (rErr error
 	}
 
 	_, err := r.gwClassClient.UpdateStatus(&gwv1.GatewayClass{
-		ObjectMeta: pluginsdk.CloneObjectMetaForStatus(gwClass.ObjectMeta),
+		ObjectMeta: CloneObjectMetaForStatus(gwClass.ObjectMeta),
 		Status:     status,
 	})
 	if err != nil {
@@ -230,4 +229,12 @@ func (r *gatewayClassReconciler) getControllerName(gwc string) string {
 		controllerName = info.ControllerName
 	}
 	return controllerName
+}
+
+func CloneObjectMetaForStatus(m metav1.ObjectMeta) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:            m.GetName(),
+		Namespace:       m.GetNamespace(),
+		ResourceVersion: m.GetResourceVersion(),
+	}
 }

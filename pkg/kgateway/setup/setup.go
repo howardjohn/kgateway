@@ -37,7 +37,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
 	"github.com/kgateway-dev/kgateway/v2/pkg/logging"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
-	sdk "github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/schemes"
@@ -61,11 +60,12 @@ func WithExtraInformerCacheSyncHandlers(handlers []cache.InformerSynced) func(*s
 	}
 }
 
-func WithGatewayControllerExtension(extension sdk.GatewayControllerExtension) func(*setup) {
-	return func(s *setup) {
-		s.gatewayControllerExtension = extension
-	}
-}
+// TODODONOTMERGE
+//func WithGatewayControllerExtension(extension sdk.GatewayControllerExtension) func(*setup) {
+//	return func(s *setup) {
+//		s.gatewayControllerExtension = extension
+//	}
+//}
 
 func WithAgwControllerName(name string) func(*setup) {
 	return func(s *setup) {
@@ -180,7 +180,6 @@ func WithAgentgatewaySyncerOptions(agentgatewaySyncerOptions []agentgatewaysynce
 type setup struct {
 	apiClient                      apiclient.Client
 	extraInformerCacheSyncHandlers []cache.InformerSynced
-	gatewayControllerExtension     sdk.GatewayControllerExtension
 	agwControllerName              string
 	gatewayClassName               string
 	waypointClassName              string
@@ -450,7 +449,6 @@ func (s *setup) buildKgatewayWithConfig(
 		AgwCollections:                 agwCollections,
 		Validator:                      s.validator,
 		ExtraAgwResourceStatusHandlers: s.extraAgwPolicyStatusHandlers,
-		GatewayControllerExtension:     s.gatewayControllerExtension,
 		AgentgatewaySyncerOptions:      s.agentgatewaySyncerOptions,
 	})
 	if err != nil {

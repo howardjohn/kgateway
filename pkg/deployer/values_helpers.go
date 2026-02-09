@@ -12,9 +12,8 @@ import (
 	"istio.io/istio/pkg/util/smallset"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
-
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/validate"
 )
 
 var (
@@ -97,13 +96,13 @@ func (c GatewayForDeployer) Equals(in GatewayForDeployer) bool {
 // Extract the listener ports from a Gateway and corresponding listener sets. These will be used to populate:
 // 1. the ports exposed on the envoy container
 // 2. the ports exposed on the proxy service
-func GetPortsValues(gw *GatewayForDeployer, agentgateway bool) []HelmPort {
+func GetPortsValues(gw *GatewayForDeployer) []HelmPort {
 	gwPorts := []HelmPort{}
 
 	// Add ports from Gateway listeners
 	for _, port := range gw.Ports.List() {
 		portName := GenerateListenerNameFromPort(port)
-		if err := validate.ListenerPortForParent(port, agentgateway); err != nil {
+		if err := validateListenerPortForParent(port); err != nil {
 			// skip invalid ports; statuses are handled in the translator
 			logger.Error("skipping port", "gateway", gw.ResourceName(), "error", err)
 			continue
@@ -112,6 +111,23 @@ func GetPortsValues(gw *GatewayForDeployer, agentgateway bool) []HelmPort {
 	}
 
 	return gwPorts
+}
+
+var agentGatewayReservedPorts = sets.New[int32](
+	15020, // Metrics port
+	15021, // Readiness port
+	15000, // Envoy admin port
+)
+
+
+var ErrListenerPortReserved = fmt.Errorf("port is reserved")
+
+func validateListenerPortForParent(port int32) error {
+		if agentGatewayReservedPorts.Has(port) {
+			return fmt.Errorf("invalid port %d in listener: %w",
+				port, ErrListenerPortReserved)
+		}
+	return nil
 }
 
 func SanitizePortName(name string) string {
