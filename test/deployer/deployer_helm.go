@@ -231,12 +231,12 @@ func (dt DeployerTester) RunHelmChartTest(
 
 	objs := dt.GetObjects(t, tt, scheme, dir, crdDir)
 
-	commonObjs, gtw := ExtractCommonObjs(t, objs)
+	_, gtw := ExtractCommonObjs(t, objs)
 	if gtw == nil {
 		t.Log("No Gateway found in test files, failing...")
 		t.FailNow()
 	}
-	commonCols := NewCommonCols(t, commonObjs...)
+	commonCols := NewCommonCols()
 	inputs := DefaultDeployerInputs(dt, commonCols)
 	if tt.Inputs != nil {
 		inputs = tt.Inputs
@@ -250,7 +250,6 @@ func (dt DeployerTester) RunHelmChartTest(
 		gwParams.WithHelmValuesGeneratorOverride(tt.HelmValuesGeneratorOverride(inputs))
 	}
 	deployer, err := internaldeployer.NewGatewayDeployer(
-		dt.ControllerName,
 		dt.AgwControllerName,
 		dt.AgwClassName,
 		scheme,

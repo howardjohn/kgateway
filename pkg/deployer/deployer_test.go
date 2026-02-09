@@ -374,7 +374,7 @@ var _ = Describe("Deployer", func() {
 
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwParams)
 			gwp := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -461,7 +461,7 @@ var _ = Describe("Deployer", func() {
 			var err error
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -541,7 +541,7 @@ var _ = Describe("Deployer", func() {
 			}
 			fakeClient := fake.NewClient(GinkgoT(), gwc, agwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -659,7 +659,7 @@ var _ = Describe("Deployer", func() {
 			}
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -732,7 +732,7 @@ var _ = Describe("Deployer", func() {
 			}
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -821,7 +821,7 @@ var _ = Describe("Deployer", func() {
 			}
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -916,7 +916,7 @@ var _ = Describe("Deployer", func() {
 			}
 			fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 			gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-				CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+				CommonCollections: deployertest.NewCommonCols(),
 				Dev:               false,
 				ControlPlane: deployer.ControlPlaneInfo{
 					XdsHost:    "something.cluster.local",
@@ -1220,7 +1220,7 @@ var _ = Describe("Deployer", func() {
 
 				fakeClient := fake.NewClient(GinkgoT(), gwc)
 				gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-					CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+					CommonCollections: deployertest.NewCommonCols(),
 					Dev:               false,
 					ControlPlane: deployer.ControlPlaneInfo{
 						XdsHost:    "something.cluster.local",
@@ -1311,7 +1311,7 @@ var _ = Describe("Deployer", func() {
 				gwc := defaultGatewayClass()
 				fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 				gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-					CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+					CommonCollections: deployertest.NewCommonCols(),
 					Dev:               false,
 					ControlPlane: deployer.ControlPlaneInfo{
 						XdsHost:    "something.cluster.local",
@@ -1406,7 +1406,7 @@ var _ = Describe("Deployer", func() {
 				}
 				fakeClient := fake.NewClient(GinkgoT(), gwc, gwp)
 				gwParams := deployerinternal.NewGatewayParameters(fakeClient, &deployer.Inputs{
-					CommonCollections: deployertest.NewCommonCols(GinkgoT(), gwc, gw),
+					CommonCollections: deployertest.NewCommonCols(),
 					Dev:               false,
 					ControlPlane: deployer.ControlPlaneInfo{
 						XdsHost:    "something.cluster.local",

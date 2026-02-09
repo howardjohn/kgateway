@@ -25,7 +25,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/agentgatewaysyncer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/xds"
-	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/kubeutils"
@@ -105,10 +104,6 @@ func NewControllerBuilder(ctx context.Context, cfg StartConfig) (*ControllerBuil
 	istiolog.Configure(loggingOptions)
 
 	setupLog.Info("initializing kgateway extensions")
-
-	// Begin background processing of resource sync metrics.
-	// This only effects metrics in the resources subsystem and is not required for other metrics.
-	metrics.StartResourceSyncMetricsProcessing(ctx)
 
 	agwMergedPlugins := agwPluginFactory(cfg)(ctx, cfg.AgwCollections)
 

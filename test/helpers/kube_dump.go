@@ -20,7 +20,6 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/requestutils/curl"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/threadsafe"
 	kgatewayAdminCli "github.com/kgateway-dev/kgateway/v2/test/controllerutils/admincli"
-	"github.com/kgateway-dev/kgateway/v2/test/envoyutils/admincli"
 	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
@@ -41,7 +40,6 @@ func StandardKgatewayDumpOnFail(outLog io.Writer, kubectlCli *kubectl.Cli, outDi
 
 	KubeDumpOnFail(ctx, kubectlCli, outLog, outDir, namespaces)
 	ControllerDumpOnFail(ctx, kubectlCli, outLog, outDir, namespaces)
-	EnvoyDumpOnFail(ctx, kubectlCli, outLog, outDir, namespaces)
 
 	fmt.Printf("Test failed. Logs and cluster state are available in %s\n", outDir)
 }
@@ -373,73 +371,6 @@ func ControllerDumpOnFail(ctx context.Context, kubectlCli *kubectl.Cli, outLog i
 			}
 
 			fmt.Printf("finished dumping controller state\n")
-		}
-	}
-}
-
-// EnvoyDumpOnFail creates a small dump of the envoy admin interface when a test fails.
-// This is useful for debugging test failures.
-// The dump includes:
-// - config dump
-// - stats
-// - clusters
-// - listeners
-func EnvoyDumpOnFail(ctx context.Context, kubectlCli *kubectl.Cli, _ io.Writer, outDir string, namespaces []string) {
-	for _, ns := range namespaces {
-		proxies := []string{}
-
-		kubeGatewayProxies, err := kubectlCli.GetPodsInNsWithLabel(ctx, ns, "kgateway=kube-gateway")
-		if err != nil {
-			fmt.Printf("error fetching kube-gateway proxies: %f\n", err)
-		} else {
-			proxies = append(proxies, kubeGatewayProxies...)
-		}
-
-		if len(proxies) == 0 {
-			fmt.Printf("no proxies found in namespace %s\n", ns)
-			continue
-		}
-
-		fmt.Printf("found proxies: %s\n", strings.Join(proxies, ", "))
-
-		envoyOutDir := filepath.Join(outDir, ns)
-		setupOutDir(envoyOutDir)
-
-		for _, proxy := range proxies {
-			adminCli, shutdown, err := admincli.NewPortForwardedClient(ctx,
-				fmt.Sprintf("pod/%s", proxy), ns)
-			if err != nil {
-				fmt.Printf("error creating admin cli: %f\n", err)
-				continue
-			}
-
-			defer shutdown()
-
-			configDumpFile := fileAtPath(filepath.Join(envoyOutDir, fmt.Sprintf("%s.config.log", proxy)))
-			err = adminCli.ConfigDumpCmd(ctx, nil).WithStdout(configDumpFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running config dump command: %f\n", err)
-			}
-
-			statsFile := fileAtPath(filepath.Join(envoyOutDir, fmt.Sprintf("%s.stats.log", proxy)))
-			err = adminCli.StatsCmd(ctx, nil).WithStdout(statsFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running stats command: %f\n", err)
-			}
-
-			clustersFile := fileAtPath(filepath.Join(envoyOutDir, fmt.Sprintf("%s.clusters.log", proxy)))
-			err = adminCli.ClustersCmd(ctx).WithStdout(clustersFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running clusters command: %f\n", err)
-			}
-
-			listenersFile := fileAtPath(filepath.Join(envoyOutDir, fmt.Sprintf("%s.listeners.log", proxy)))
-			err = adminCli.ListenersCmd(ctx).WithStdout(listenersFile).Run().Cause()
-			if err != nil {
-				fmt.Printf("error running listeners command: %f\n", err)
-			}
-
-			fmt.Printf("finished dumping envoy state\n")
 		}
 	}
 }
