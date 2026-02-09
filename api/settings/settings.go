@@ -172,13 +172,6 @@ type Settings struct {
 	// is deprecated in v2.1 and will not be supported in v2.2.
 	EnableInferExt bool `split_words:"true"`
 
-	// DefaultImageRegistry is the default image registry to use for the kgateway image.
-	DefaultImageRegistry string `split_words:"true" default:"cr.kgateway.dev"`
-	// DefaultImageTag is the default image tag to use for the kgateway image.
-	DefaultImageTag string `split_words:"true" default:""`
-	// DefaultImagePullPolicy is the default image pull policy to use for the kgateway image.
-	DefaultImagePullPolicy string `split_words:"true" default:"IfNotPresent"`
-
 	// LogLevel specifies the logging level (e.g., "trace", "debug", "info", "warn", "error").
 	// Defaults to "info" if not set.
 	LogLevel string `split_words:"true" default:"info"`

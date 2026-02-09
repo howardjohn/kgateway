@@ -34,16 +34,10 @@ type GatewayConfig struct {
 	AgwControllerName string
 	// ControlPlane sets the default control plane information the deployer will use.
 	ControlPlane deployer.ControlPlaneInfo
-	// ImageInfo sets the default image information the deployer will use.
-	ImageInfo *deployer.ImageInfo
 	// DiscoveryNamespaceFilter filters namespaced objects based on the discovery namespace filter.
 	DiscoveryNamespaceFilter kubetypes.DynamicObjectFilter
 	// CommonCollections used to fetch ir.Gateways for the deployer to generate the ports for the proxy service
 	CommonCollections *collections.CommonCollections
-	// GatewayClassName is the configured gateway class name.
-	GatewayClassName string
-	// WaypointGatewayClassName is the configured waypoint gateway class name.
-	WaypointGatewayClassName string
 	// AgentgatewayClassName is the configured agent gateway class name.
 	AgentgatewayClassName string
 	// Additional GatewayClass definitions to support extending to other well-known gateway classes
@@ -88,10 +82,7 @@ func watchGw(
 	inputs := &deployer.Inputs{
 		Dev:                        cfg.Dev,
 		ControlPlane:               cfg.ControlPlane,
-		ImageInfo:                  cfg.ImageInfo,
 		CommonCollections:          cfg.CommonCollections,
-		GatewayClassName:           cfg.GatewayClassName,
-		WaypointGatewayClassName:   cfg.WaypointGatewayClassName,
 		AgentgatewayClassName:      cfg.AgentgatewayClassName,
 		AgentgatewayControllerName: cfg.AgwControllerName,
 	}

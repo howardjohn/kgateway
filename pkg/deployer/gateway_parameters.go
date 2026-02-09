@@ -8,10 +8,7 @@ import (
 type Inputs struct {
 	Dev                        bool
 	ControlPlane               ControlPlaneInfo
-	ImageInfo                  *ImageInfo
 	CommonCollections          *collections.CommonCollections
-	GatewayClassName           string
-	WaypointGatewayClassName   string
 	AgentgatewayClassName      string
 	AgentgatewayControllerName string
 }

@@ -37,12 +37,8 @@ import (
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
-	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/kgateway"
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/extensions2/registry"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/krtcollections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics"
 	"github.com/kgateway-dev/kgateway/v2/pkg/metrics/metricstest"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
@@ -239,71 +235,6 @@ func (s *ControllerSuite) TestGatewayStatus() {
 			}, defaultPollTimeout, 500*time.Millisecond)
 		})
 	}
-}
-
-// TestInvalidGatewayParameters tests that a Gateway with invalid GatewayParameters attached
-func (s *ControllerSuite) TestInvalidGatewayParameters() {
-	ctx := context.Background()
-	var gwp *kgateway.GatewayParameters
-	var gw *gwv1.Gateway
-
-	s.T().Cleanup(func() {
-		err := s.client.Delete(ctx, gwp)
-		s.NoError(err)
-		err = s.client.Delete(ctx, gw)
-		s.NoError(err)
-	})
-
-	gwp = &kgateway.GatewayParameters{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "invalid-gwp",
-			Namespace: "default",
-		},
-		Spec: kgateway.GatewayParametersSpec{
-			Kube: &kgateway.KubernetesProxyConfig{
-				Deployment: &kgateway.ProxyDeployment{
-					Replicas: ptr.To[int32](2),
-				},
-			},
-		},
-	}
-	gw = &gwv1.Gateway{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       "gw",
-			Namespace:  "default",
-			Generation: 1,
-		},
-		Spec: gwv1.GatewaySpec{
-			GatewayClassName: gwv1.ObjectName(gatewayClassName),
-			Infrastructure: &gwv1.GatewayInfrastructure{
-				ParametersRef: &gwv1.LocalParametersReference{
-					Group: kgateway.GroupName,
-					Kind:  "InvalidKindName",
-					Name:  gwp.Name,
-				},
-			},
-			Listeners: []gwv1.Listener{{
-				Name:     "listener",
-				Protocol: "HTTP",
-				Port:     80,
-			}},
-		},
-	}
-	err := s.client.Create(ctx, gwp)
-	s.Require().NoError(err)
-	err = s.client.Create(ctx, gw)
-	s.Require().NoError(err)
-
-	s.Require().EventuallyWithT(func(c *assert.CollectT) {
-		err := s.client.Get(ctx, types.NamespacedName{Name: gw.Name, Namespace: gw.Namespace}, gw)
-		require.NoError(c, err, "error getting Gateway")
-
-		condition := meta.FindStatusCondition(gw.Status.Conditions, string(gwv1.GatewayConditionAccepted))
-		require.NotNil(c, condition)
-		require.Equal(c, metav1.ConditionFalse, condition.Status)
-		require.Equal(c, string(gwv1.GatewayReasonInvalidParameters), condition.Reason)
-		require.Equal(c, gw.Generation, condition.ObservedGeneration)
-	}, defaultPollTimeout, 500*time.Millisecond, "timed out waiting for Gateway to have GatewayReasonInvalidParameters")
 }
 
 // TestGatewayClassStatus tests the Status conditions on GatewayClass
@@ -729,34 +660,15 @@ func (s *ControllerSuite) startController(
 		return err
 	}
 
-	if err := mgr.GetClient().Create(ctx, &kgateway.GatewayParameters{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      selfManagedGatewayClassName,
-			Namespace: "default",
-		},
-		Spec: kgateway.GatewayParametersSpec{
-			SelfManaged: &kgateway.SelfManagedGateway{},
-		},
-	}); client.IgnoreAlreadyExists(err) != nil {
-		return err
-	}
-
 	commonCols, err := newCommonCols(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
 
 	gwCfg := GatewayConfig{
-		Client:             kubeClient,
-		Mgr:                mgr,
-		ControllerName:     gatewayControllerName,
-		AgwControllerName:  agwControllerName,
-		EnableEnvoy:        true,
-		EnableAgentgateway: true,
-		ImageInfo: &deployer.ImageInfo{
-			Registry: "ghcr.io/kgateway-dev",
-			Tag:      "latest",
-		},
+		Client:                   kubeClient,
+		Mgr:                      mgr,
+		AgwControllerName:        agwControllerName,
 		DiscoveryNamespaceFilter: fakeDiscoveryNamespaceFilter{},
 		CommonCollections:        commonCols,
 	}
@@ -768,25 +680,9 @@ func (s *ControllerSuite) startController(
 			ControllerName:    gwClassToController[altGatewayClassName],
 			SupportedFeatures: supportedFeatures,
 		},
-		gatewayClassName: {
-			Description:       "default GatewayClass",
-			ControllerName:    gwClassToController[gatewayClassName],
-			SupportedFeatures: supportedFeatures,
-		},
-		selfManagedGatewayClassName: {
-			Description:    "self-managed GatewayClass",
-			ControllerName: gwClassToController[selfManagedGatewayClassName],
-			ParametersRef: &gwv1.ParametersReference{
-				Group:     gwv1.Group(wellknown.GatewayParametersGVK.Group),
-				Kind:      gwv1.Kind(wellknown.GatewayParametersGVK.Kind),
-				Name:      selfManagedGatewayClassName,
-				Namespace: ptr.To(gwv1.Namespace("default")),
-			},
-			SupportedFeatures: supportedFeatures,
-		},
 	}
 
-	if err := NewBaseGatewayController(ctx, gwCfg, classConfigs, nil, nil); err != nil {
+	if err := NewBaseGatewayController(ctx, gwCfg, classConfigs, nil); err != nil {
 		return err
 	}
 	kubeClient.RunAndWait(ctx.Done())
@@ -820,15 +716,10 @@ func newCommonCols(ctx context.Context, kubeClient apiclient.Client) (*collectio
 	if err != nil {
 		return nil, fmt.Errorf("error building Settings: %w", err)
 	}
-	commoncol, err := collections.NewCommonCollections(ctx, krtopts, kubeClient, gatewayControllerName, agwControllerName, *settings)
+	commoncol, err := collections.NewCommonCollections(krtopts, kubeClient, agwControllerName, *settings)
 	if err != nil {
 		return nil, fmt.Errorf("error building CommonCollections: %w", err)
 	}
 
-	plugins := registry.Plugins(ctx, commoncol, wellknown.DefaultWaypointClassName, *settings, nil)
-	plugins = append(plugins, krtcollections.NewBuiltinPlugin(ctx))
-	extensions := registry.MergePlugins(plugins...)
-
-	commoncol.InitPlugins(ctx, extensions, *settings)
 	return commoncol, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"maps"
 	"net/http"
 	"sync/atomic"
 
@@ -51,8 +50,6 @@ var setupLog = ctrl.Log.WithName("setup")
 type StartConfig struct {
 	Manager                  manager.Manager
 	AgwControllerName        string
-	GatewayClassName         string
-	WaypointGatewayClassName string
 	AgentgatewayClassName    string
 	AdditionalGatewayClasses map[string]*deployer.GatewayClassInfo
 	GatewayClassInfos        map[string]*deployer.GatewayClassInfo
@@ -199,15 +196,8 @@ func (c *ControllerBuilder) Build(ctx context.Context) (*agentgatewaysyncer.Sync
 			XdsTLS:       globalSettings.XdsTLS,
 			XdsTlsCaPath: xds.TLSRootCAPath,
 		},
-		ImageInfo: &deployer.ImageInfo{
-			Registry:   globalSettings.DefaultImageRegistry,
-			Tag:        globalSettings.DefaultImageTag,
-			PullPolicy: globalSettings.DefaultImagePullPolicy,
-		},
 		DiscoveryNamespaceFilter: c.cfg.Client.ObjectFilter(),
 		CommonCollections:        c.commoncol,
-		GatewayClassName:         c.cfg.GatewayClassName,
-		WaypointGatewayClassName: c.cfg.WaypointGatewayClassName,
 		AgentgatewayClassName:    c.cfg.AgentgatewayClassName,
 		CertWatcher:              c.cfg.SetupOpts.CertWatcher,
 	}
@@ -243,7 +233,6 @@ func GetDefaultClassInfo(
 	globalSettings *apisettings.Settings,
 	agwClassName,
 	agwControllerName string,
-	additionalClassInfos map[string]*deployer.GatewayClassInfo,
 ) map[string]*deployer.GatewayClassInfo {
 	classInfos := map[string]*deployer.GatewayClassInfo{}
 	refOverrides := globalSettings.GatewayClassParametersRefs
@@ -257,7 +246,6 @@ func GetDefaultClassInfo(
 		SupportedFeatures: deployer.GetSupportedFeaturesForAgentGateway(),
 	}
 	applyGatewayClassParametersRef(classInfos[agwClassName], agwClassName, refOverrides)
-	maps.Copy(classInfos, additionalClassInfos)
 	return classInfos
 }
 

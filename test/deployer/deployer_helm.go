@@ -39,11 +39,8 @@ type HelmTestCase struct {
 }
 
 type DeployerTester struct {
-	ControllerName    string
 	AgwControllerName string
-	ClassName         string
 	AgwClassName      string
-	WaypointClassName string
 }
 
 // NoSecurityContextValidator returns a validation function that ensures no securityContext appears in output.
@@ -275,12 +272,6 @@ func DefaultDeployerInputs(dt DeployerTester, commonCols *collections.CommonColl
 			XdsHost:    "xds.cluster.local",
 			AgwXdsPort: 9978,
 		},
-		ImageInfo: &pkgdeployer.ImageInfo{
-			Registry: "ghcr.io",
-			Tag:      "v2.1.0-dev",
-		},
-		GatewayClassName:           dt.ClassName,
-		WaypointGatewayClassName:   dt.WaypointClassName,
 		AgentgatewayClassName:      dt.AgwClassName,
 		AgentgatewayControllerName: dt.AgwControllerName,
 	}

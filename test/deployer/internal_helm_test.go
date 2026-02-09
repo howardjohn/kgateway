@@ -81,12 +81,6 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 		}
 	}
 
-	// Istio override function for tests that need Istio auto mTLS enabled
-	istioOverride := func(inputs *pkgdeployer.Inputs) pkgdeployer.HelmValuesGenerator {
-		inputs.IstioAutoMtlsEnabled = true
-		return nil
-	}
-
 	tests := []HelmTestCase{
 		{
 			Name:      "basic gateway with default gatewayclass and no gwparams",
@@ -586,43 +580,7 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 					"Gateway service annotation should be present")
 			},
 		},
-		{
-			// This test demonstrates the recommended approach for adding sidecars:
-			// - Use sdsContainer for TLS certificate handling (built-in SDS, requires Istio)
-			// - Use deploymentOverlay for other custom sidecars
-			Name:                        "envoy with SDS container and custom sidecar via overlay",
-			InputFile:                   "envoy-sds-and-custom-sidecar",
-			HelmValuesGeneratorOverride: istioOverride,
-			Validate: func(t *testing.T, outputYaml string) {
-				t.Helper()
-
-				// SDS container should be present with custom image (requires Istio enabled)
-				assert.Contains(t, outputYaml, "name: sds",
-					"SDS container should be present when Istio is enabled")
-				assert.Contains(t, outputYaml, "ghcr.io/kgateway-dev/sds:v1.0.0",
-					"SDS container should use custom image")
-
-				// Custom sidecar added via overlay should be present
-				assert.Contains(t, outputYaml, "name: my-sidecar",
-					"custom sidecar from overlay should be present")
-				assert.Contains(t, outputYaml, "image: my-sidecar:latest",
-					"custom sidecar should use specified image")
-
-				// Main proxy container should still be present
-				assert.Contains(t, outputYaml, "name: kgateway-proxy",
-					"main proxy container should be present")
-
-				// Istio proxy container should also be present
-				assert.Contains(t, outputYaml, "name: istio-proxy",
-					"istio-proxy container should be present when Istio is enabled")
-			},
-		},
 		// TLS test cases
-		{
-			Name:                        "basic gateway with TLS enabled",
-			InputFile:                   "base-gateway-tls",
-			HelmValuesGeneratorOverride: tlsOverride(caCertPath),
-		},
 		{
 			Name:                        "agentgateway with TLS enabled",
 			InputFile:                   "agentgateway-tls",
@@ -636,40 +594,6 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 		{
 			Name:      "agentgateway with Gateway.spec.addresses",
 			InputFile: "agentgateway-gateway-addresses",
-		},
-		{
-			Name:                        "gateway with istio enabled",
-			InputFile:                   "istio-enabled",
-			HelmValuesGeneratorOverride: istioOverride,
-			Validate: func(t *testing.T, outputYaml string) {
-				t.Helper()
-				assert.Contains(t, outputYaml, "name: sds",
-					"sds container should be present when istio is enabled")
-				assert.Contains(t, outputYaml, "name: istio-proxy",
-					"istio-proxy container should be present when istio is enabled")
-				assert.Contains(t, outputYaml, "ISTIO_MTLS_SDS_ENABLED",
-					"ISTIO_MTLS_SDS_ENABLED env var should be present")
-				assert.Contains(t, outputYaml, "name: istio-certs",
-					"istio-certs volume should be present")
-			},
-		},
-		{
-			Name:                        "waypoint gateway with istio enabled",
-			InputFile:                   "istio-enabled-waypoint",
-			HelmValuesGeneratorOverride: istioOverride,
-			Validate: func(t *testing.T, outputYaml string) {
-				t.Helper()
-				assert.Contains(t, outputYaml, "name: sds",
-					"sds container should be present when istio is enabled")
-				assert.Contains(t, outputYaml, "name: istio-proxy",
-					"istio-proxy container should be present when istio is enabled")
-				// Waypoint-specific: ClusterIP service type
-				assert.Contains(t, outputYaml, "type: ClusterIP",
-					"waypoint should have ClusterIP service type")
-				// Waypoint-specific: port 15008 for HBONE
-				assert.Contains(t, outputYaml, "port: 15008",
-					"waypoint should have port 15008 for HBONE")
-			},
 		},
 		{
 			Name:      "gateway with name exactly 63 characters",
@@ -690,10 +614,7 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 	}
 
 	tester := DeployerTester{
-		ControllerName:    wellknown.DefaultGatewayControllerName,
 		AgwControllerName: wellknown.DefaultAgwControllerName,
-		ClassName:         wellknown.DefaultGatewayClassName,
-		WaypointClassName: wellknown.DefaultWaypointClassName,
 		AgwClassName:      wellknown.DefaultAgwClassName,
 	}
 
@@ -702,7 +623,6 @@ wIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQBtestcertdata
 	crdDir := filepath.Join(testutils.GitRootDirectory(), testutils.CRDPath)
 
 	VerifyAllYAMLFilesReferenced(t, filepath.Join(dir, "testdata"), tests)
-	VerifyAllEnvoyBootstrapAreValid(t, filepath.Join(dir, "testdata"))
 
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
