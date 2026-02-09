@@ -20,37 +20,21 @@ import (
 // with values set to a non-default value.
 func allEnvVarsSet() map[string]string {
 	return map[string]string{
-		"KGW_DNS_LOOKUP_FAMILY":                        string(DnsLookupFamilyV4Only),
-		"KGW_LISTENER_BIND_IPV6":                       "false",
-		"KGW_ENABLE_ISTIO_INTEGRATION":                 "true",
-		"KGW_ENABLE_ISTIO_AUTO_MTLS":                   "true",
-		"KGW_ISTIO_NAMESPACE":                          "my-istio-namespace",
-		"KGW_XDS_SERVICE_HOST":                         "my-xds-host",
-		"KGW_XDS_SERVICE_NAME":                         "custom-svc",
-		"KGW_XDS_SERVICE_PORT":                         "1234",
-		"KGW_AGENTGATEWAY_XDS_SERVICE_PORT":            "5678",
-		"KGW_USE_RUST_FORMATIONS":                      "false",
-		"KGW_ENABLE_INFER_EXT":                         "true",
-		"KGW_DEFAULT_IMAGE_REGISTRY":                   "my-registry",
-		"KGW_DEFAULT_IMAGE_TAG":                        "my-tag",
-		"KGW_DEFAULT_IMAGE_PULL_POLICY":                "Always",
-		"KGW_WAYPOINT_LOCAL_BINDING":                   "true",
-		"KGW_INGRESS_USE_WAYPOINTS":                    "false",
-		"KGW_LOG_LEVEL":                                "debug",
-		"KGW_DISCOVERY_NAMESPACE_SELECTORS":            `[{"matchExpressions":[{"key":"kubernetes.io/metadata.name","operator":"In","values":["infra"]}]},{"matchLabels":{"app":"a"}}]`,
-		"KGW_ENABLE_AGENTGATEWAY":                      "false",
-		"KGW_ENABLE_ENVOY":                             "false",
-		"KGW_WEIGHTED_ROUTE_PRECEDENCE":                "true",
-		"KGW_VALIDATION_MODE":                          string(ValidationStrict),
-		"KGW_ENABLE_BUILTIN_DEFAULT_METRICS":           "true",
-		"KGW_GLOBAL_POLICY_NAMESPACE":                  "foo",
-		"KGW_DISABLE_LEADER_ELECTION":                  "true",
-		"KGW_POLICY_MERGE":                             `{"TrafficPolicy":{"extProc":"DeepMerge"}}`,
-		"KGW_GATEWAY_CLASS_PARAMETERS_REFS":            `{"kgateway":{"name":"custom-gwp","namespace":"infra"},"agentgateway":{"name":"custom-gwp-agw","namespace":"infra"}}`,
-		"KGW_ENABLE_WAYPOINT":                          "true",
-		"KGW_XDS_AUTH":                                 "false",
-		"KGW_XDS_TLS":                                  "true",
-		"KGW_ENABLE_EXPERIMENTAL_GATEWAY_API_FEATURES": "false",
+		"AGW_DNS_LOOKUP_FAMILY":                        string(DnsLookupFamilyV4Only),
+		"AGW_LISTENER_BIND_IPV6":                       "false",
+		"AGW_ISTIO_NAMESPACE":                          "my-istio-namespace",
+		"AGW_XDS_SERVICE_HOST":                         "my-xds-host",
+		"AGW_XDS_SERVICE_NAME":                         "custom-svc",
+		"AGW_XDS_SERVICE_PORT":                         "1234",
+		"AGW_AGENTGATEWAY_XDS_SERVICE_PORT":            "5678",
+		"AGW_ENABLE_INFER_EXT":                         "true",
+		"AGW_LOG_LEVEL":                                "debug",
+		"AGW_ENABLE_BUILTIN_DEFAULT_METRICS":           "true",
+		"AGW_DISABLE_LEADER_ELECTION":                  "true",
+		"AGW_GATEWAY_CLASS_PARAMETERS_REFS":            `{"kgateway":{"name":"custom-gwp","namespace":"infra"},"agentgateway":{"name":"custom-gwp-agw","namespace":"infra"}}`,
+		"AGW_XDS_AUTH":                                 "false",
+		"AGW_XDS_TLS":                                  "true",
+		"AGW_ENABLE_EXPERIMENTAL_GATEWAY_API_FEATURES": "false",
 	}
 }
 
@@ -126,58 +110,51 @@ func TestSettings(t *testing.T) {
 		{
 			name: "errors on invalid bool",
 			envVars: map[string]string{
-				"KGW_ENABLE_ISTIO_INTEGRATION": "true123",
+				"AGW_ENABLE_INFER_EXT": "true123",
 			},
 			expectedErrorStr: "invalid syntax",
 		},
 		{
 			name: "errors on invalid port",
 			envVars: map[string]string{
-				"KGW_XDS_SERVICE_PORT": "a123",
+				"AGW_XDS_SERVICE_PORT": "a123",
 			},
 			expectedErrorStr: "invalid syntax",
 		},
 		{
 			name: "errors on invalid port",
 			envVars: map[string]string{
-				"KGW_AGENTGATEWAY_XDS_SERVICE_PORT": "a123",
+				"AGW_AGENTGATEWAY_XDS_SERVICE_PORT": "a123",
 			},
 			expectedErrorStr: "invalid syntax",
 		},
 		{
 			name: "errors on invalid dns lookup family",
 			envVars: map[string]string{
-				"KGW_DNS_LOOKUP_FAMILY": "invalid",
+				"AGW_DNS_LOOKUP_FAMILY": "invalid",
 			},
 			expectedErrorStr: `invalid DNS lookup family: "invalid"`,
 		},
 		{
-			name: "errors on invalid validation mode",
-			envVars: map[string]string{
-				"KGW_VALIDATION_MODE": "invalid",
-			},
-			expectedErrorStr: `invalid validation mode: "invalid"`,
-		},
-		{
 			name: "errors on invalid gatewayclass parameters refs: missing name",
 			envVars: map[string]string{
-				"KGW_GATEWAY_CLASS_PARAMETERS_REFS": `{"kgateway":{"namespace":"missing-name"}}`,
+				"AGW_GATEWAY_CLASS_PARAMETERS_REFS": `{"kgateway":{"namespace":"missing-name"}}`,
 			},
 			expectedErrorStr: `gateway class "kgateway" parametersRef.name must be set`,
 		},
 		{
 			name: "errors on invalid gatewayclass parameters refs: missing namespace",
 			envVars: map[string]string{
-				"KGW_GATEWAY_CLASS_PARAMETERS_REFS": `{"kgateway":{"name":"custom-gwp"}}`,
+				"AGW_GATEWAY_CLASS_PARAMETERS_REFS": `{"kgateway":{"name":"custom-gwp"}}`,
 			},
 			expectedErrorStr: `gateway class "kgateway" parametersRef.namespace must be set`,
 		},
 		{
 			name: "ignores other env vars",
 			envVars: map[string]string{
-				"KGW_DOES_NOT_EXIST":         "true",
+				"AGW_DOES_NOT_EXIST":         "true",
 				"ANOTHER_VAR":                "abc",
-				"KGW_ENABLE_ISTIO_AUTO_MTLS": "true",
+				"AGW_ENABLE_ISTIO_AUTO_MTLS": "true",
 			},
 			expectedSettings: &Settings{
 				DnsLookupFamily:                      DnsLookupFamilyV4Preferred,
@@ -247,14 +224,14 @@ func TestExpectedEnvVars(t *testing.T) {
 	require.Equal(t, len(expectedEnvVars), validateValue.NumField())
 
 	// Check that the env vars are correct
-	require.Contains(t, expectedEnvVars, "KGW_FIELD_ONE", "Env var KGW_FIELD_ONE is not set")
-	require.Equal(t, expectedEnvVars["KGW_FIELD_ONE"], "default_value_1", "Env var KGW_FIELD_ONE is not set to the default value")
-	require.Contains(t, expectedEnvVars, "KGW_FIELDTWO", "Env var KGW_FIELDTWO is not set")
-	require.Equal(t, expectedEnvVars["KGW_FIELDTWO"], "", "Env var KGW_FIELDTWO is not set to the default value")
+	require.Contains(t, expectedEnvVars, "AGW_FIELD_ONE", "Env var KGW_FIELD_ONE is not set")
+	require.Equal(t, expectedEnvVars["AGW_FIELD_ONE"], "default_value_1", "Env var KGW_FIELD_ONE is not set to the default value")
+	require.Contains(t, expectedEnvVars, "AGW_FIELDTWO", "Env var KGW_FIELDTWO is not set")
+	require.Equal(t, expectedEnvVars["AGW_FIELDTWO"], "", "Env var KGW_FIELDTWO is not set to the default value")
 	require.Contains(t, expectedEnvVars, "ALT_FIELD_3", "Env var ALT_FIELD_3 is not set")
 	require.Contains(t, expectedEnvVars, "ALT_FIELD_4", "Env var ALT_FIELD_4 is not set")
-	require.Contains(t, expectedEnvVars, "KGW_FIELD_SSL_CONFIG", "Env var KGW_FIELD_SSL_CONFIG is not set")
-	require.Contains(t, expectedEnvVars, "KGW_FIELDHTTPCONFIG", "Env var KGW_FIELDHTTPCONFIG is not set")
+	require.Contains(t, expectedEnvVars, "AGW_FIELD_SSL_CONFIG", "Env var KGW_FIELD_SSL_CONFIG is not set")
+	require.Contains(t, expectedEnvVars, "AGW_FIELDHTTPCONFIG", "Env var KGW_FIELDHTTPCONFIG is not set")
 }
 
 func cleanupEnvVars(t *testing.T, envVars map[string]string) {
@@ -298,7 +275,7 @@ func expectedEnvVars(settingsValue reflect.Value) map[string]any {
 
 		envVarName = strings.ToUpper(envVarName)
 		// Always have a prefix
-		envVarName = fmt.Sprintf("KGW_%s", envVarName)
+		envVarName = fmt.Sprintf("AGW_%s", envVarName)
 
 		// If the field has an alt tag, use that as the env var name
 		if fieldType.Tag.Get("alt") != "" {
