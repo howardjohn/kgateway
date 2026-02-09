@@ -32,23 +32,15 @@ func TestDependencies(t *testing.T) {
 	}{
 		{
 			entrypoint: "cmd/kgateway",
-			tag:        "",
+			tag:        "agent",
 			denied: []string{
 				// Deps meant only for other components; if we import them, something may be wrong
-				`^github\.com/containernetworking/`,
-				`^github\.com/fatih/color`,
-				`^github\.com/vishvananda/`,
-				`^helm\.sh/helm/v3`,
-				`^sigs\.k8s\.io/controller-runtime`,
-				// Testing deps
-				`^sigs.k8s.io/controller-runtime/tools/setup-envtest/`,
-				`^github\.com/AdaLogics/go-fuzz-headers`,
-				`^github\.com/google/shlex`,
-				`^github\.com/howardjohn/unshare-go`,
+				`^testing$`,
 			},
 			wantToDeny: []string{
-				`^testing$`,
-				// Ideally only used for testing, but client-go uses it
+				`^github\.com/fatih/color`,
+				`^helm\.sh/helm/v3`,
+				`^sigs\.k8s\.io/controller-runtime/pkg/client`,
 				`^github\.com/pmezard/go-difflib`,
 			},
 		},

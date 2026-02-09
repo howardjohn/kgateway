@@ -26,7 +26,6 @@ import (
 	"istio.io/istio/pilot/pkg/features"
 	istiogrpc "istio.io/istio/pilot/pkg/grpc"
 	"istio.io/istio/pilot/pkg/model"
-	"istio.io/istio/pilot/pkg/networking/util"
 	"istio.io/istio/pilot/pkg/util/protoconv"
 	"istio.io/istio/pkg/env"
 	"istio.io/istio/pkg/kube/krt"
@@ -671,7 +670,7 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 	//configSizeBytes.With(typeTag.Value(w.TypeUrl)).Record(float64(configSize))
 
 	if err := con.sendDelta(resp); err != nil {
-		log.Debug("send failure", "type", GetShortType(w.TypeUrl), "node", con.proxy.ID, "resources", len(res), "size", util.ByteCount(configSize), "error", err)
+		log.Debug("send failure", "type", GetShortType(w.TypeUrl), "node", con.proxy.ID, "resources", len(res), "size", ByteCount(configSize), "error", err)
 		return err
 	}
 
@@ -681,7 +680,7 @@ func (s *DiscoveryServer) pushDeltaXds(con *Connection, w *model.WatchedResource
 		"node", con.proxy.ID,
 		"resources", len(res),
 		"removed", len(resp.RemovedResources),
-		"size", util.ByteCount(configSize))
+		"size", ByteCount(configSize))
 
 	return nil
 }
@@ -1373,3 +1372,19 @@ const (
 	// PeerCtxKey is the key used to store the peer information in the context
 	PeerCtxKey = "peer"
 )
+
+// ByteCount returns a human readable byte format
+// Inspired by https://yourbasic.org/golang/formatting-byte-size-to-human-readable-format/
+func ByteCount(b int) string {
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%dB", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f%cB",
+		float64(b)/float64(div), "kMGTPE"[exp])
+}
