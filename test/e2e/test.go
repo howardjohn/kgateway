@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/helmutils"
-	"github.com/kgateway-dev/kgateway/v2/test/e2e/testutils/helper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -158,15 +157,13 @@ func (i *TestInstallation) InstallAgentgatewayCRDsFromLocalChart(ctx context.Con
 	}
 
 	// install the CRD chart first
-	crdChartURI, err := helper.GetLocalChartPath(helmutils.AgentgatewayCRDChartName, "")
-	i.AssertionsT(t).Require.NoError(err)
-	err = i.Actions.Helm().WithReceiver(os.Stdout).Upgrade(
+	err := i.Actions.Helm().WithReceiver(os.Stdout).Upgrade(
 		ctx,
 		helmutils.InstallOpts{
 			CreateNamespace: true,
 			ReleaseName:     helmutils.AgentgatewayCRDChartName,
 			Namespace:       i.Metadata.InstallNamespace,
-			ChartUri:        crdChartURI,
+			Chart:           "install/helm/agentgateway-crds",
 		})
 	i.AssertionsT(t).Require.NoError(err)
 }
@@ -185,9 +182,7 @@ func (i *TestInstallation) InstallAgentgatewayCoreFromLocalChart(ctx context.Con
 	}
 
 	// and then install the main chart
-	chartUri, err := helper.GetLocalChartPath(helmutils.AgentgatewayChartName, "")
-	i.AssertionsT(t).Require.NoError(err)
-	err = i.Actions.Helm().WithReceiver(os.Stdout).Upgrade(
+	err := i.Actions.Helm().WithReceiver(os.Stdout).Upgrade(
 		ctx,
 		helmutils.InstallOpts{
 			Namespace:       i.Metadata.InstallNamespace,
@@ -198,7 +193,7 @@ func (i *TestInstallation) InstallAgentgatewayCoreFromLocalChart(ctx context.Con
 				ManifestPath("agent-gateway-integration.yaml"),
 			},
 			ReleaseName: helmutils.AgentgatewayChartName,
-			ChartUri:    chartUri,
+			Chart:           "install/helm/agentgateway",
 			ExtraArgs:   i.Metadata.ExtraHelmArgs,
 		})
 	i.AssertionsT(t).Require.NoError(err)
