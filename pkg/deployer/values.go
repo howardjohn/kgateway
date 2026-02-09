@@ -4,13 +4,11 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/agentgateway"
 )
 
-
 // helmConfig stores the top-level helm values used by the deployer.
 type HelmConfig struct {
 	Agentgateway       *AgentgatewayHelmGateway `json:"agentgateway,omitempty"`
 	InferenceExtension *HelmInferenceExtension  `json:"inferenceExtension,omitempty"`
 }
-
 
 // helmPort represents a Gateway Listener port
 type HelmPort struct {

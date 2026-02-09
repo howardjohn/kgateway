@@ -12,7 +12,6 @@ import (
 	"github.com/agentgateway/agentgateway/go/api"
 	"github.com/golang/protobuf/ptypes/duration"
 	"istio.io/api/annotation"
-	"istio.io/istio/pilot/pkg/credentials"
 	"istio.io/istio/pilot/pkg/model/kstatus"
 	"istio.io/istio/pkg/config/host"
 	"istio.io/istio/pkg/config/protocol"
@@ -1668,16 +1667,12 @@ const (
 	TLSSecretCert = "tls.crt"
 	// The ID/name for the k8sKey in kubernetes tls secret.
 	TLSSecretKey = "tls.key"
-	// The ID/name for the certificate OCSP staple in kubernetes tls secret
-	TLSSecretOcspStaple = "tls.ocsp-staple"
 	// The ID/name for the CA certificate in kubernetes tls secret
 	TLSSecretCaCert = "ca.crt"
-	// The ID/name for the CRL in kubernetes tls secret.
-	TLSSecretCrl = "ca.crl"
 )
 
 // ExtractRootFromString extracts the root certificate
-func ExtractRootFromString(data map[string]string) (certInfo *credentials.CertInfo, err error) {
+func ExtractRootFromString(data map[string]string) (certInfo *CertInfo, err error) {
 	conv := make(map[string][]byte, len(data))
 	for k, v := range data {
 		conv[k] = []byte(v)
@@ -1686,11 +1681,10 @@ func ExtractRootFromString(data map[string]string) (certInfo *credentials.CertIn
 }
 
 // ExtractRoot extracts the root certificate
-func ExtractRoot(data map[string][]byte) (certInfo *credentials.CertInfo, err error) {
-	ret := &credentials.CertInfo{}
+func ExtractRoot(data map[string][]byte) (certInfo *CertInfo, err error) {
+	ret := &CertInfo{}
 	if hasValue(data, TLSSecretCaCert) {
 		ret.Cert = data[TLSSecretCaCert]
-		ret.CRL = data[TLSSecretCrl]
 		return ret, nil
 	}
 	// No cert found. Try to generate a helpful error message
@@ -1743,13 +1737,11 @@ func truncatedKeysMessage(data map[string][]byte) string {
 }
 
 // ExtractCertInfo extracts server key, certificate, and OCSP staple
-func ExtractCertInfo(scrt *corev1.Secret) (certInfo *credentials.CertInfo, err error) {
-	ret := &credentials.CertInfo{}
+func ExtractCertInfo(scrt *corev1.Secret) (certInfo *CertInfo, err error) {
+	ret := &CertInfo{}
 	if hasValue(scrt.Data, TLSSecretCert, TLSSecretKey) {
 		ret.Cert = scrt.Data[TLSSecretCert]
 		ret.Key = scrt.Data[TLSSecretKey]
-		ret.Staple = scrt.Data[TLSSecretOcspStaple]
-		ret.CRL = scrt.Data[TLSSecretCrl]
 		return ret, nil
 	}
 	// No cert found. Try to generate a helpful error message

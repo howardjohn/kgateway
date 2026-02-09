@@ -27,7 +27,7 @@ var (
 
 func NewGatewayParameters(cli apiclient.Client, inputs *deployer.Inputs) *GatewayParameters {
 	gp := &GatewayParameters{
-		inputs: inputs,
+		inputs:                 inputs,
 		agwHelmValuesGenerator: newAgentgatewayParametersHelmValuesGenerator(cli, inputs),
 	}
 

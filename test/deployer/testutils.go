@@ -1,16 +1,18 @@
 package deployer
 
 import (
+	"istio.io/istio/pkg/kube"
+	"istio.io/istio/pkg/test"
+	"istio.io/istio/pkg/test/util/assert"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
+
 	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
 	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient/fake"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
-	"istio.io/istio/pkg/kube"
-	"istio.io/istio/pkg/test"
-	"istio.io/istio/pkg/test/util/assert"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func NewCommonCols(t test.Failer, initObjs ...client.Object) *collections.CommonCollections {

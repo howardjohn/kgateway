@@ -65,7 +65,7 @@ type StartConfig struct {
 	// for all Gateways. This is a 1:1 replacement - you provide one generator that handles everything.
 	HelmValuesGeneratorOverride HelmValuesGeneratorOverrideFunc
 
-	Client    apiclient.Client
+	Client apiclient.Client
 
 	AgwCollections    *agwplugins.AgwCollections
 	CommonCollections *collections.CommonCollections

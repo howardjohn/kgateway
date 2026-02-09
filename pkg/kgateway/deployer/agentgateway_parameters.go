@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/util/smallset"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +19,7 @@ import (
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/deployer/strategicpatch"
 	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 )
 
 // AgentgatewayParametersApplier applies AgentgatewayParameters configurations and overlays.

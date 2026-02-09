@@ -48,7 +48,6 @@ func FromAgentgatewayParameters(params *agentgateway.AgentgatewayParameters) *Re
 	}
 }
 
-
 // OverlayApplier applies overlays to rendered k8s objects using strategic merge patch semantics.
 type OverlayApplier struct {
 	overlays *ResourceOverlays

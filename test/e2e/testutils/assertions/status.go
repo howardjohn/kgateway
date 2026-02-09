@@ -389,15 +389,6 @@ func getListenerStatus(listeners []gwv1.ListenerStatus, name string) *gwv1.Liste
 	return nil
 }
 
-// extractAncestorConditions extracts conditions from policy ancestor statuses.
-func extractAncestorConditions(ancestors []gwv1.PolicyAncestorStatus) [][]metav1.Condition {
-	result := make([][]metav1.Condition, len(ancestors))
-	for i, a := range ancestors {
-		result[i] = a.Conditions
-	}
-	return result
-}
-
 // EventuallyAgwBackendCondition checks that provided AgentgatewayBackend condition is set to expect.
 func (p *Provider) EventuallyAgwBackendCondition(
 	ctx context.Context,

@@ -71,10 +71,10 @@ func NewGatewayReconciler(
 ) *gatewayReconciler {
 	filter := kclient.Filter{ObjectFilter: cfg.Client.ObjectFilter()}
 	r := &gatewayReconciler{
-		deployer:            deployer,
-		gwParams:            gwParams,
-		scheme:              cfg.Mgr.GetScheme(),
-		agwControllerName:   cfg.AgwControllerName,
+		deployer:          deployer,
+		gwParams:          gwParams,
+		scheme:            cfg.Mgr.GetScheme(),
+		agwControllerName: cfg.AgwControllerName,
 
 		gwClient:         kclient.NewFilteredDelayed[*gwv1.Gateway](cfg.Client, gvr.KubernetesGateway, filter),
 		gwClassClient:    kclient.NewFilteredDelayed[*gwv1.GatewayClass](cfg.Client, gvr.GatewayClass, filter),

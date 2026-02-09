@@ -6,13 +6,15 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	slices0 "slices"
 	"strings"
 	"testing"
 
-	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 	"istio.io/istio/pkg/slices"
 	"istio.io/istio/pkg/test/util/assert"
 	"istio.io/istio/pkg/util/sets"
+
+	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
 // TestDependencies controls which binaries can import which packages.
@@ -103,13 +105,7 @@ func TestDependencies(t *testing.T) {
 		all, err := getDependencies(testutils.GitRootDirectory()+"/...", "integ,e2e,conformance", true)
 		assert.NoError(t, err)
 		for _, d := range allDenials {
-			found := false
-			for _, dep := range all {
-				if d.MatchString(dep) {
-					found = true
-					break
-				}
-			}
+			found := slices0.ContainsFunc(all, d.MatchString)
 			if !found {
 				t.Errorf("Had a deny rule %q, but it doesn't match *any* dependency in the repo. This is likely a bug.", d)
 			}

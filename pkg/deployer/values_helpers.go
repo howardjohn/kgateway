@@ -8,10 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"istio.io/istio/pkg/slices"
 	"k8s.io/apimachinery/pkg/util/sets"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 )
 
 var (
@@ -55,14 +56,13 @@ var agentGatewayReservedPorts = sets.New[int32](
 	15000, // Envoy admin port
 )
 
-
 var ErrListenerPortReserved = fmt.Errorf("port is reserved")
 
 func validateListenerPortForParent(port int32) error {
-		if agentGatewayReservedPorts.Has(port) {
-			return fmt.Errorf("invalid port %d in listener: %w",
-				port, ErrListenerPortReserved)
-		}
+	if agentGatewayReservedPorts.Has(port) {
+		return fmt.Errorf("invalid port %d in listener: %w",
+			port, ErrListenerPortReserved)
+	}
 	return nil
 }
 
@@ -127,7 +127,6 @@ func GetLoadBalancerIPFromGatewayAddresses(gw *gwv1.Gateway) (*string, error) {
 	}
 	return nil, ErrNoValidIPAddress
 }
-
 
 // SetLoadBalancerIPFromGatewayForAgentgateway extracts the IP address from Gateway.spec.addresses
 // and sets it on the AgentgatewayHelmService.

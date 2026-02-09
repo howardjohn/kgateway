@@ -1,21 +1,22 @@
 package collections
 
 import (
-	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
-	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
-	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
-	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
-	krtpkg "github.com/kgateway-dev/kgateway/v2/pkg/utils/krtutil"
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/kube/krt"
 	kubetypes "istio.io/istio/pkg/kube/kubetypes"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwxv1a1 "sigs.k8s.io/gateway-api/apisx/v1alpha1"
+
+	apisettings "github.com/kgateway-dev/kgateway/v2/api/settings"
+	"github.com/kgateway-dev/kgateway/v2/pkg/apiclient"
+	"github.com/kgateway-dev/kgateway/v2/pkg/kgateway/wellknown"
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/krtutil"
+	krtpkg "github.com/kgateway-dev/kgateway/v2/pkg/utils/krtutil"
 )
 
 type CommonCollections struct {
-	Client            apiclient.Client
-	KrtOpts           krtutil.KrtOptions
+	Client  apiclient.Client
+	KrtOpts krtutil.KrtOptions
 
 	GatewaysForDeployer krt.Collection[GatewayForDeployer]
 	// static set of global Settings, non-krt based for dev speed
@@ -36,7 +37,7 @@ func NewCommonCollections(
 ) (*CommonCollections, error) {
 	filter := kclient.Filter{ObjectFilter: client.ObjectFilter()}
 	kubeRawGateways := krt.WrapClient(kclient.NewFilteredDelayed[*gwv1.Gateway](client, wellknown.GatewayGVR, filter), krtOptions.ToOptions("KubeGateways")...)
-	gatewayClasses := krt.WrapClient(kclient.New[*gwv1.GatewayClass](client), krtOptions.ToOptions("KubeGatewayClasses")...)
+	gatewayClasses := krt.WrapClient(kclient.NewFilteredDelayed[*gwv1.GatewayClass](client, wellknown.GatewayClassGVR, filter), krtOptions.ToOptions("KubeGatewayClasses")...)
 	var kubeRawListenerSets krt.Collection[*gwxv1a1.XListenerSet]
 	// ON_EXPERIMENTAL_PROMOTION : Remove this block
 	// Ref: https://github.com/kgateway-dev/kgateway/issues/12827
@@ -63,16 +64,16 @@ func NewCommonCollections(
 	})
 	gtw := krt.NewCollection(kubeRawGateways, GatewaysForDeployerTransformationFunc(gatewayClasses, kubeRawListenerSets, byParentRefIndex, agentGatewayControllerName))
 	return &CommonCollections{
-		Client:            client,
-		KrtOpts:           krtOptions,
-		Settings:          settings,
+		Client:                     client,
+		KrtOpts:                    krtOptions,
+		Settings:                   settings,
 		AgentgatewayControllerName: agentGatewayControllerName,
-		GatewaysForDeployer: gtw,
+		GatewaysForDeployer:        gtw,
 	}, nil
 }
 
 func (c *CommonCollections) HasSynced() bool {
-	return  c.GatewaysForDeployer.HasSynced()
+	return c.GatewaysForDeployer.HasSynced()
 }
 
 func strOr[T ~string](s *T, def string) string {
