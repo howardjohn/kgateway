@@ -126,7 +126,7 @@ func (f *JwksFetcher) maybeFetchJwks(ctx context.Context) {
 			continue
 		}
 
-		logger.Info("fetching remote jwks", "jwks_uri", fetch.keysetSource.JwksURL)
+		logger.Debug("fetching remote jwks", "jwks_uri", fetch.keysetSource.JwksURL)
 
 		jwks, err := f.fetchJwks(ctx, fetch.keysetSource.JwksURL, fetch.keysetSource.TlsConfig)
 		if err != nil {
