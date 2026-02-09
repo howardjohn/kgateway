@@ -175,7 +175,7 @@ func (dt DeployerTester) RunHelmChartTest(
 		t.Log("No Gateway found in test files, failing...")
 		t.FailNow()
 	}
-	commonCols := NewCommonCols()
+	commonCols := NewCommonCols(t)
 	inputs := DefaultDeployerInputs(dt, commonCols)
 	if tt.Inputs != nil {
 		inputs = tt.Inputs

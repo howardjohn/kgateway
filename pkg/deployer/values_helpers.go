@@ -8,10 +8,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"istio.io/istio/pkg/slices"
-	"istio.io/istio/pkg/util/smallset"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
@@ -31,72 +29,10 @@ var ComponentLogLevelEmptyError = func(key string, value string) error {
 	return fmt.Errorf("an empty key or value was provided in componentLogLevels: key=%s, value=%s", key, value)
 }
 
-
-// TODODONOTMERGE
-type GatewayForDeployer struct {
-	ObjectSource
-	// Controller name for the gateway
-	ControllerName string
-	// All ports from all listeners
-	Ports smallset.Set[int32]
-}
-
-type ObjectSource struct {
-	Group     string `json:"group,omitempty"`
-	Kind      string `json:"kind,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-	Name      string `json:"name"`
-}
-
-// GetKind returns the kind of the route.
-func (c ObjectSource) GetGroupKind() schema.GroupKind {
-	return schema.GroupKind{
-		Group: c.Group,
-		Kind:  c.Kind,
-	}
-}
-
-// GetName returns the name of the route.
-func (c ObjectSource) GetName() string {
-	return c.Name
-}
-
-// GetNamespace returns the namespace of the route.
-func (c ObjectSource) GetNamespace() string {
-	return c.Namespace
-}
-
-func (c ObjectSource) ResourceName() string {
-	return fmt.Sprintf("%s/%s/%s/%s", c.Group, c.Kind, c.Namespace, c.Name)
-}
-
-func (c ObjectSource) String() string {
-	return fmt.Sprintf("%s/%s/%s/%s", c.Group, c.Kind, c.Namespace, c.Name)
-}
-
-func (c ObjectSource) Equals(in ObjectSource) bool {
-	return c.Namespace == in.Namespace && c.Name == in.Name && c.Group == in.Group && c.Kind == in.Kind
-}
-
-func (c ObjectSource) NamespacedName() types.NamespacedName {
-	return types.NamespacedName{
-		Namespace: c.Namespace,
-		Name:      c.Name,
-	}
-}
-func (c GatewayForDeployer) ResourceName() string {
-	return c.ObjectSource.ResourceName()
-}
-
-func (c GatewayForDeployer) Equals(in GatewayForDeployer) bool {
-	return c.ObjectSource.Equals(in.ObjectSource) &&
-		c.ControllerName == in.ControllerName &&
-		slices.Equal(c.Ports.List(), in.Ports.List())
-}
 // Extract the listener ports from a Gateway and corresponding listener sets. These will be used to populate:
 // 1. the ports exposed on the envoy container
 // 2. the ports exposed on the proxy service
-func GetPortsValues(gw *GatewayForDeployer) []HelmPort {
+func GetPortsValues(gw *collections.GatewayForDeployer) []HelmPort {
 	gwPorts := []HelmPort{}
 
 	// Add ports from Gateway listeners
