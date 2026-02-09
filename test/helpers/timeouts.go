@@ -22,8 +22,8 @@ func GetTimeouts(timeout ...time.Duration) (currentTimeout, pollingInterval time
 	}
 
 	timeoutAny, pollingIntervalAny := getTimeoutsAsInterfaces(interfaceTimeouts...)
-	currentTimeout = timeoutAny.(time.Duration)
-	pollingInterval = pollingIntervalAny.(time.Duration)
+	currentTimeout = timeoutAny.(time.Duration) / 10
+	pollingInterval = pollingIntervalAny.(time.Duration) / 10
 	return currentTimeout, pollingInterval
 }
 

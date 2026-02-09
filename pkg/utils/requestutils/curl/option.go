@@ -41,6 +41,13 @@ func WithPort(port int) Option {
 	}
 }
 
+// WithConnectionTimeout returns the Option to set connect and request timeout in seconds.
+func WithConnectionTimeout(seconds int) Option {
+	return func(config *requestConfig) {
+		config.connectionTimeout = seconds
+	}
+}
+
 // WithHost returns the Option to set the host for the curl request
 func WithHost(host string) Option {
 	return func(config *requestConfig) {

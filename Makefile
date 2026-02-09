@@ -142,7 +142,7 @@ analyze: $(CUSTOM_GOLANGCI_LINT_BIN)  ## Run golangci-lint. Override options wit
 $(CUSTOM_GOLANGCI_LINT_BIN): go.mod go.sum .custom-gcl.yml
 	GOTOOLCHAIN=$(GOTOOLCHAIN) $(GOLANGCI_LINT) custom
 
-ACTION_LINT ?= go tool github.com/rhysd/actionlint/cmd/actionlint
+ACTION_LINT ?= go tool -modfile=tools/go.mod github.com/rhysd/actionlint/cmd/actionlint
 .PHONY: lint-actions
 lint-actions: ## Lint the GitHub Actions workflows
 	$(ACTION_LINT)
@@ -163,7 +163,7 @@ TEST_PKG ?= ./... # Default to run all tests except e2e tests
 # This is a way for a user executing `make test` to be able to provide flags which we do not include by default
 # For example, you may want to run tests multiple times, or with various timeouts
 GINKGO_USER_FLAGS ?=
-GINKGO ?= go tool ginkgo
+GINKGO ?= go tool -modfile=tools/go.mod ginkgo
 
 .PHONY: test
 test: ## Run all tests with ginkgo, or only run the test package at {TEST_PKG} if it is specified
@@ -194,7 +194,7 @@ e2e-test: GO_TEST_ARGS = $(E2E_GO_TEST_ARGS)
 .PHONY: test-with-coverage
 test-with-coverage: GINKGO_FLAGS += $(GINKGO_COVERAGE_FLAGS)
 test-with-coverage: test
-	go tool cover -html $(OUTPUT_DIR)/coverage.cov
+	go tool -modfile=tools/go.mod cover -html $(OUTPUT_DIR)/coverage.cov
 
 .PHONY: golden-deployer
 golden-deployer:  ## Refreshes golden files for ./test/deployer snapshot testing
@@ -233,13 +233,13 @@ E2E_GO_TEST_ARGS ?= -vet=off -timeout=25m -outputdir=$(OUTPUT_DIR)
 # to 25 minutes based on the time it takes to run the longest test setup (kgateway_test).
 GO_TEST_ARGS ?= -timeout=25m -outputdir=$(OUTPUT_DIR) -race
 GO_TEST_COVERAGE_ARGS ?= --cover --covermode=atomic --coverprofile=cover.out
-GO_TEST_COVERAGE ?= go tool github.com/vladopajic/go-test-coverage/v2
+GO_TEST_COVERAGE ?= go tool -modfile=tools/go.mod github.com/vladopajic/go-test-coverage/v2
 
 # This is a way for a user executing `make go-test` to be able to provide args which we do not include by default
 # For example, you may want to run tests multiple times, or with various timeouts
 GO_TEST_USER_ARGS ?=
 GO_TEST_RETRIES ?= 0
-GOTESTSUM ?= go tool gotestsum
+GOTESTSUM ?= go tool -modfile=tools/go.mod gotestsum
 GOTESTSUM_ARGS ?= --format=standard-verbose
 
 .PHONY: go-test
@@ -269,7 +269,7 @@ validate-test-coverage: ## Validate the test coverage
 # https://go.dev/blog/cover#heat-maps
 .PHONY: view-test-coverage
 view-test-coverage:
-	go tool cover -html $(OUTPUT_DIR)/cover.out
+	go tool -modfile=tools/go.mod cover -html $(OUTPUT_DIR)/cover.out
 
 #----------------------------------------------------------------------------------
 # MARK: Clean
@@ -486,7 +486,7 @@ kind-load-extproc-server:
 # Helm
 #----------------------------------------------------------------------------------
 
-HELM ?= go tool helm
+HELM ?= go tool -modfile=tools/go.mod helm
 # It would be nice to use actual semver '--version', as Helm docs clearly state
 # is intended (and yet is not enforced by 'helm lint'). Here we say '--version
 # v2.0.0', not '--version 2.0.0', e.g. To do it cleanly, you'd probably
@@ -563,7 +563,7 @@ release-notes: ## Generate release notes (PREVIOUS_TAG required, CURRENT_TAG opt
 # MARK: Development
 #----------------------------------------------------------------------------------
 
-KIND ?= go tool kind
+KIND ?= go tool -modfile=tools/go.mod kind
 CLUSTER_NAME ?= kind
 # TODO: This should probably change depending on if kgateway or agw is installed
 INSTALL_NAMESPACE ?= kgateway-system
