@@ -7,7 +7,6 @@ import (
 // Inputs is the set of options used to configure gateway/inference pool deployment.
 type Inputs struct {
 	Dev                        bool
-	IstioAutoMtlsEnabled       bool
 	ControlPlane               ControlPlaneInfo
 	ImageInfo                  *ImageInfo
 	CommonCollections          *collections.CommonCollections

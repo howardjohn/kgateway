@@ -34,9 +34,6 @@ type GatewayConfig struct {
 	AgwControllerName string
 	// ControlPlane sets the default control plane information the deployer will use.
 	ControlPlane deployer.ControlPlaneInfo
-	// IstioAutoMtlsEnabled enables istio auto mtls mode for the controller,
-	// resulting in the deployer to enable istio and sds sidecars on the deployed proxies.
-	IstioAutoMtlsEnabled bool
 	// ImageInfo sets the default image information the deployer will use.
 	ImageInfo *deployer.ImageInfo
 	// DiscoveryNamespaceFilter filters namespaced objects based on the discovery namespace filter.
@@ -83,14 +80,13 @@ func watchGw(
 	helmValuesGeneratorOverride HelmValuesGeneratorOverrideFunc,
 ) error {
 	logger.Info("creating gateway deployer",
-		 "agwctrlname", cfg.AgwControllerName,
-		"server", cfg.ControlPlane.XdsHost, "port", cfg.ControlPlane.XdsPort,
-		"agwport", cfg.ControlPlane.AgwXdsPort, "tls", cfg.ControlPlane.XdsTLS,
+		"agwctrlname", cfg.AgwControllerName,
+		"server", cfg.ControlPlane.XdsHost,
+		"port", cfg.ControlPlane.AgwXdsPort, "tls", cfg.ControlPlane.XdsTLS,
 	)
 
 	inputs := &deployer.Inputs{
 		Dev:                        cfg.Dev,
-		IstioAutoMtlsEnabled:       cfg.IstioAutoMtlsEnabled,
 		ControlPlane:               cfg.ControlPlane,
 		ImageInfo:                  cfg.ImageInfo,
 		CommonCollections:          cfg.CommonCollections,

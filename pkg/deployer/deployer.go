@@ -32,7 +32,6 @@ var logger = logging.New("deployer")
 
 type ControlPlaneInfo struct {
 	XdsHost      string
-	XdsPort      uint32
 	AgwXdsPort   uint32
 	XdsTLS       bool
 	XdsTlsCaPath string

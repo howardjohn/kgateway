@@ -7,13 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -25,7 +23,6 @@ import (
 	internaldeployer "github.com/kgateway-dev/kgateway/v2/pkg/kgateway/deployer"
 	"github.com/kgateway-dev/kgateway/v2/pkg/pluginsdk/collections"
 	"github.com/kgateway-dev/kgateway/v2/pkg/utils/envutils"
-	"github.com/kgateway-dev/kgateway/v2/pkg/validator"
 	"github.com/kgateway-dev/kgateway/v2/test/testutils"
 )
 
@@ -119,61 +116,6 @@ func VerifyAllYAMLFilesReferenced(t *testing.T, testDataDir string, testCases []
 	}
 
 	require.Empty(t, unreferenced, "Found YAML files in %s without corresponding test cases: %v", testDataDir, unreferenced)
-}
-
-// VerifyAllEnvoyBootstrapAreValid ensures that envoy bootstrap configs are accepted by envoy.
-func VerifyAllEnvoyBootstrapAreValid(t *testing.T, testDataDir string) {
-	t.Helper()
-
-	if envutils.IsEnvTruthy("REFRESH_GOLDEN") {
-		t.Log("Skipping envoy bootstrap validation because REFRESH_GOLDEN is set")
-		return
-	}
-
-	yamlFiles, err := filepath.Glob(filepath.Join(testDataDir, "*-out.yaml"))
-	require.NoError(t, err, "failed to list YAML files in %s", testDataDir)
-
-	// split
-	var wg sync.WaitGroup
-	var envoyErr error
-	var once sync.Once
-	validator := validator.NewDocker(validator.EtcEnvoyVolume(filepath.Join(testDataDir, "etc-envoy")))
-
-	for _, yamlFile := range yamlFiles {
-		// deserialize the YAML file
-		data, err := os.ReadFile(yamlFile)
-		require.NoError(t, err, "failed to read YAML file %s", yamlFile)
-
-		documents := strings.Split(string(data), "\n---\n")
-		for i, doc := range documents {
-			if d := strings.TrimSpace(doc); d == "" || d == "---" {
-				continue
-			}
-			var obj corev1.ConfigMap
-			err := yaml.Unmarshal([]byte(doc), &obj)
-			if err != nil && obj.Kind == "ConfigMap" {
-				require.NoErrorf(t, err, "failed to unmarshal document %d in %s", i+1, yamlFile)
-			}
-			envoyYaml, ok := obj.Data["envoy.yaml"]
-			if !ok {
-				continue
-			}
-			envoyJsn, err := yaml.YAMLToJSON([]byte(envoyYaml))
-			require.NoErrorf(t, err, "failed to convert envoy.yaml to JSON for document %d in %s", i+1, yamlFile)
-
-			wg.Go(func() {
-				// validate envoy bootstrap
-				err := validator.Validate(t.Context(), string(envoyJsn))
-				if err != nil {
-					once.Do(func() {
-						envoyErr = fmt.Errorf("envoy bootstrap validation failed for document %d in %s: %w", i+1, yamlFile, err)
-					})
-				}
-			})
-		}
-		wg.Wait()
-		require.NoErrorf(t, envoyErr, "envoy bootstrap validation failed")
-	}
 }
 
 // ExtractCommonObjs will return a collection containing only objects necessary for collections.CommonCollections,
@@ -331,7 +273,6 @@ func DefaultDeployerInputs(dt DeployerTester, commonCols *collections.CommonColl
 		CommonCollections: commonCols,
 		ControlPlane: pkgdeployer.ControlPlaneInfo{
 			XdsHost:    "xds.cluster.local",
-			XdsPort:    9977,
 			AgwXdsPort: 9978,
 		},
 		ImageInfo: &pkgdeployer.ImageInfo{

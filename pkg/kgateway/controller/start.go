@@ -186,13 +186,8 @@ func (c *ControllerBuilder) Build(ctx context.Context) (*agentgatewaysyncer.Sync
 		})
 	}
 
-	xdsPort := globalSettings.XdsServicePort
-	slog.Info("got xds address for deployer", "xds_host", xdsHost, "xds_port", xdsPort)
-
 	agwXdsPort := globalSettings.AgentgatewayXdsServicePort
 	slog.Info("got agentgateway xds address for deployer", "agw_xds_host", xdsHost, "agw_xds_port", agwXdsPort)
-
-	istioAutoMtlsEnabled := globalSettings.EnableIstioAutoMtls
 
 	gwCfg := GatewayConfig{
 		Client:            c.cfg.Client,
@@ -200,12 +195,10 @@ func (c *ControllerBuilder) Build(ctx context.Context) (*agentgatewaysyncer.Sync
 		AgwControllerName: c.cfg.AgwControllerName,
 		ControlPlane: deployer.ControlPlaneInfo{
 			XdsHost:      xdsHost,
-			XdsPort:      xdsPort,
 			AgwXdsPort:   agwXdsPort,
 			XdsTLS:       globalSettings.XdsTLS,
 			XdsTlsCaPath: xds.TLSRootCAPath,
 		},
-		IstioAutoMtlsEnabled: istioAutoMtlsEnabled,
 		ImageInfo: &deployer.ImageInfo{
 			Registry:   globalSettings.DefaultImageRegistry,
 			Tag:        globalSettings.DefaultImageTag,
