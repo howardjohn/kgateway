@@ -15,9 +15,6 @@ spec:
         - method:
             method: Echo
             service: proto.EchoTestService
-        - method:
-            method: Echo
-            service: EchoTestService
       backendRefs:
         - name: backend
           port: 7070
