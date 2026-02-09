@@ -580,7 +580,7 @@ func (s *BaseTestingSuite) DeleteManifests(testCase *TestCase) {
 
 func (s *BaseTestingSuite) setupHelpers() {
 	if s.CrdPath == "" {
-		s.CrdPath = testutils.CRDPath
+		s.CrdPath = testutils.AgwCRDPath
 	}
 	var err error
 	s.gvkToStructuralSchema, err = testutils.GetStructuralSchemasForBothCharts()

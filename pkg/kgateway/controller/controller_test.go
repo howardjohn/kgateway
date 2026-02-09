@@ -85,6 +85,7 @@ func TestControllerSuite(t *testing.T) {
 }
 
 func (s *ControllerSuite) SetupSuite() {
+	panic("TODO: stop using stupid envtest")
 	// Don't use the testing.T.Context because it is cancelled before the corresponding
 	// Cleanup function is called, and we need the Client/Manager to be alive in t.Cleanup handlers
 	ctx, cancel := context.WithCancel(context.Background())
