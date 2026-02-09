@@ -6,6 +6,7 @@ import (
 	"istio.io/istio/pkg/kube/controllers"
 	"istio.io/istio/pkg/kube/kclient"
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/log"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/kgateway-dev/kgateway/v2/api/v1alpha1/agentgateway"
@@ -127,6 +128,7 @@ func (j *JwksStorePolicyController) JwksChanges() chan jwks.JwksSource {
 }
 
 func (j *JwksStorePolicyController) buildJwksSource(krtctx krt.HandlerContext, policyName, defaultNS string, remoteProvider *agentgateway.RemoteJWKS) *jwks.JwksSource {
+	log.Errorf("howardjohn: BUILD %+v %+v", policyName, remoteProvider)
 	jwksUrl, tlsConfig, err := j.jwksUrlFactory().BuildJwksUrlAndTlsConfig(krtctx, policyName, defaultNS, remoteProvider)
 	if err != nil {
 		polLogger.Error("error generating remote jwks url or tls options", "error", err)

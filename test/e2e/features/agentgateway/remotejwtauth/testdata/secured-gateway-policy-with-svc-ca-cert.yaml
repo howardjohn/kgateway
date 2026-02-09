@@ -37,12 +37,13 @@ spec:
               kind: Service
               name: dummy-idp
               port: 8443
+              namespace: default
 ---
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: idp-policy
-  namespace: agentgateway-base
+  namespace: default
 spec:
   targetRefs:
   - group: ""

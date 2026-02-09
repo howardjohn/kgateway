@@ -43,7 +43,7 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: idp-policy
-  namespace: agentgateway-base
+  namespace: default
 spec:
   targetRefs:
   - group: ""

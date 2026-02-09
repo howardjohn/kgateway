@@ -101,14 +101,14 @@ func (s *JwksStore) updateJwksSources(ctx context.Context) {
 		select {
 		case jwksUpdate := <-s.jwksChanges:
 			if jwksUpdate.Deleted {
-				logger.Debug("deleting keyset", "jwks_uri", jwksUpdate.JwksURL, "config_map", JwksConfigMapName(s.storePrefix, jwksUpdate.JwksURL))
+				logger.Info("deleting keyset", "jwks_uri", jwksUpdate.JwksURL, "config_map", JwksConfigMapName(s.storePrefix, jwksUpdate.JwksURL))
 				s.jwksFetcher.RemoveKeyset(jwksUpdate)
 
 				s.l.Lock()
 				delete(s.cmNameToJwks, JwksConfigMapName(s.storePrefix, jwksUpdate.JwksURL))
 				s.l.Unlock()
 			} else {
-				logger.Debug("updating keyset", "jwks_uri", jwksUpdate.JwksURL, "config_map", JwksConfigMapName(s.storePrefix, jwksUpdate.JwksURL))
+				logger.Info("updating keyset", "jwks_uri", jwksUpdate.JwksURL, "config_map", JwksConfigMapName(s.storePrefix, jwksUpdate.JwksURL))
 				err := s.jwksFetcher.AddOrUpdateKeyset(jwksUpdate)
 				if err != nil {
 					logger.Error("error adding/updating a jwks keyset", "error", err, "uri", jwksUpdate.JwksURL)

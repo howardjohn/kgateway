@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"istio.io/istio/pkg/kube/krt"
+	"istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/ptr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -194,10 +195,12 @@ func GetTLSConfig(
 				Name:      string(ref.Name),
 				Namespace: namespace,
 			}
+			log.Errorf("howardjohn: had ca...")
 			cfgmap := krt.FetchOne(krtctx, cfgmaps, krt.FilterObjectName(nn))
 			if cfgmap == nil {
 				return nil, fmt.Errorf("ConfigMap %s not found", nn)
 			}
+			log.Errorf("howardjohn: CA: %v", ptr.Flatten(cfgmap).Data["ca.crt"])
 			success := AppendPoolWithCertsFromConfigMap(certPool, ptr.Flatten(cfgmap))
 			if !success {
 				return nil, fmt.Errorf("error extracting CA cert from ConfigMap %s", nn)
